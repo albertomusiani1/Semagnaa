@@ -1,0 +1,3 @@
+# Semagnaa è un'app personale: non c'è nulla da indicizzare.
+User-agent: *
+Disallow:

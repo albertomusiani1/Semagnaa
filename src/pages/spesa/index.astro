@@ -1,0 +1,125 @@
+---
+import Base from '../../layouts/Base.astro';
+import { T } from '../../i18n';
+import { PERCORSI } from '../../lib/percorsi';
+---
+
+<Base titolo={T.spesa.titolo}>
+  <h1>{T.spesa.titolo}</h1>
+  <ol class="passi">
+    <li aria-current="step">{T.spesa.passo1}</li>
+    <li>{T.spesa.passo2}</li>
+    <li>{T.spesa.passo3}</li>
+  </ol>
+
+  <h2>{T.spesa.sceltaTitolo}</h2>
+  <p class="tenue">{T.spesa.sceltaAiuto}</p>
+
+  <p class="piccolo tenue" id="conteggio" aria-live="polite"></p>
+  <ul class="elenco-scelta" id="elenco"><li class="tenue">{T.stati.caricamento}</li></ul>
+
+  <div class="azioni-fisse">
+    <a class="bottone bottone--grande" id="avanti" href={PERCORSI.dispensa}>{T.spesa.avanti}</a>
+    <button class="bottone bottone--secondario bottone--grande" type="button" id="svuota">
+      {T.spesa.svuotaSelezione}
+    </button>
+  </div>
+</Base>
+
+<script>
+  import { T, interpola } from '../../i18n';
+  import { caricaRicette, ordinaRicette } from '../../lib/seed';
+  import { archivio } from '../../lib/archivio';
+  import { el, svuota, trova } from '../../lib/dom';
+  import { messaggioVuoto } from '../../lib/viste';
+  import type { SelezioneRicetta } from '../../lib/spesa';
+
+  const ricette = ordinaRicette(await caricaRicette());
+  const elenco = trova('#elenco');
+  const conteggio = trova('#conteggio');
+  const avanti = trova<HTMLAnchorElement>('#avanti');
+
+  const salvata = await archivio.leggiStato<SelezioneRicetta[]>('spesa-selezione', []);
+  const selezione = new Map<string, number>(
+    (salvata.ok ? salvata.dato : []).map((voce) => [voce.ricettaId, voce.porzioni]),
+  );
+
+  async function registra(): Promise<void> {
+    const dati: SelezioneRicetta[] = [...selezione.entries()].map(([ricettaId, porzioni]) => ({
+      ricettaId,
+      porzioni,
+    }));
+    await archivio.scriviStato('spesa-selezione', dati);
+    // La selezione è cambiata: le spunte della lista precedente non valgono più.
+    await archivio.rimuoviStato('spesa-spuntate');
+    aggiornaStato();
+  }
+
+  function aggiornaStato(): void {
+    const quante = selezione.size;
+    conteggio.textContent =
+      quante === 0 ? T.spesa.nessunaSelezionata : interpola(T.spesa.selezionate, { n: quante });
+    avanti.setAttribute('aria-disabled', String(quante === 0));
+    avanti.classList.toggle('bottone--secondario', quante === 0);
+  }
+
+  function riga(ricetta: (typeof ricette)[number]): HTMLLIElement {
+    const scelta = selezione.get(ricetta.id);
+    const spunta = el('input', {
+      type: 'checkbox',
+      id: `scelta-${ricetta.id}`,
+      checked: scelta !== undefined,
+    }) as HTMLInputElement;
+    const porzioni = el('input', {
+      type: 'number',
+      min: 1,
+      max: 50,
+      step: 1,
+      value: String(scelta ?? ricetta.porzioni),
+      'aria-label': interpola(T.spesa.porzioniPer, { titolo: ricetta.titolo }),
+      class: 'campo-porzioni',
+    }) as HTMLInputElement;
+
+    spunta.addEventListener('change', () => {
+      if (spunta.checked) selezione.set(ricetta.id, Number(porzioni.value));
+      else selezione.delete(ricetta.id);
+      void registra();
+    });
+    porzioni.addEventListener('change', () => {
+      const valore = Math.max(1, Math.min(50, Math.round(Number(porzioni.value) || ricetta.porzioni)));
+      porzioni.value = String(valore);
+      if (spunta.checked) {
+        selezione.set(ricetta.id, valore);
+        void registra();
+      }
+    });
+
+    return el('li', { class: 'voce' }, [
+      el('div', { class: 'voce__riga' }, [
+        spunta,
+        el('div', { class: 'voce__testo' }, [
+          el('label', { class: 'voce__nome', for: `scelta-${ricetta.id}` }, [ricetta.titolo]),
+          el('div', { class: 'voce__dettaglio' }, [
+            `${T.categorie[ricetta.categoria]} · ${T.ricetta.porzioni}: ${ricetta.porzioni}`,
+          ]),
+        ]),
+        porzioni,
+      ]),
+    ]) as HTMLLIElement;
+  }
+
+  svuota(elenco);
+  if (ricette.length === 0) {
+    elenco.append(el('li', {}, [messaggioVuoto(T.spesa.nessunaRicetta)]));
+  } else {
+    for (const ricetta of ricette) elenco.append(riga(ricetta));
+  }
+  aggiornaStato();
+
+  trova('#svuota').addEventListener('click', async () => {
+    selezione.clear();
+    await archivio.rimuoviStato('spesa-dispensa');
+    await registra();
+    location.reload();
+  });
+</script>

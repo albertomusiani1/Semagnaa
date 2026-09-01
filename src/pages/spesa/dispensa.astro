@@ -1,0 +1,122 @@
+---
+import Base from '../../layouts/Base.astro';
+import { T } from '../../i18n';
+import { PERCORSI } from '../../lib/percorsi';
+---
+
+<Base titolo={T.dispensa.titolo}>
+  <h1>{T.dispensa.titolo}</h1>
+  <ol class="passi">
+    <li><a href={PERCORSI.spesa}>{T.spesa.passo1}</a></li>
+    <li aria-current="step">{T.spesa.passo2}</li>
+    <li>{T.spesa.passo3}</li>
+  </ol>
+
+  <p class="tenue">{T.dispensa.aiuto}</p>
+
+  <div class="gruppo-bottoni spazio-sotto-corto">
+    <button class="bottone bottone--secondario" type="button" id="tutto-mancante">{T.dispensa.tuttoMancante}</button>
+    <button class="bottone bottone--secondario" type="button" id="tutto-presente">{T.dispensa.tuttoPresente}</button>
+  </div>
+
+  <p class="piccolo tenue" id="conteggio" aria-live="polite"></p>
+  <ul class="elenco-dispensa" id="elenco"><li class="tenue">{T.stati.caricamento}</li></ul>
+
+  <div class="azioni-fisse">
+    <a class="bottone bottone--grande" href={PERCORSI.lista}>{T.dispensa.avanti}</a>
+    <a class="bottone bottone--secondario bottone--grande" href={PERCORSI.spesa}>{T.nav.indietro}</a>
+  </div>
+</Base>
+
+<script>
+  import { T, interpola } from '../../i18n';
+  import { caricaRicette } from '../../lib/seed';
+  import { archivio } from '../../lib/archivio';
+  import { el, svuota, trova } from '../../lib/dom';
+  import { messaggioVuoto, quantitaLeggibile } from '../../lib/viste';
+  import { aggrega, type SelezioneRicetta, type VoceSpesa } from '../../lib/spesa';
+
+  const ricette = await caricaRicette();
+  const elenco = trova('#elenco');
+  const conteggio = trova('#conteggio');
+
+  const selezioneSalvata = await archivio.leggiStato<SelezioneRicetta[]>('spesa-selezione', []);
+  const selezione = selezioneSalvata.ok ? selezioneSalvata.dato : [];
+  const voci = aggrega(ricette, selezione);
+
+  const dispensaSalvata = await archivio.leggiStato<Record<string, boolean>>('spesa-dispensa', {});
+  const dispensa: Record<string, boolean> = dispensaSalvata.ok ? dispensaSalvata.dato : {};
+
+  function aggiornaConteggio(): void {
+    const presenti = voci.filter((voce) => dispensa[voce.chiave] === true).length;
+    conteggio.textContent = interpola(T.dispensa.conteggio, { presenti, totale: voci.length });
+  }
+
+  async function registra(): Promise<void> {
+    await archivio.scriviStato('spesa-dispensa', dispensa);
+    aggiornaConteggio();
+  }
+
+  function riga(voce: VoceSpesa): HTMLLIElement {
+    const nomeGruppo = `stato-${voce.chiave.replace(/[^a-z0-9]/gi, '-')}`;
+    const presente = dispensa[voce.chiave] === true;
+
+    function opzione(etichetta: string, valorePresente: boolean): HTMLLabelElement {
+      const radio = el('input', {
+        type: 'radio',
+        name: nomeGruppo,
+        checked: presente === valorePresente,
+      }) as HTMLInputElement;
+      radio.addEventListener('change', () => {
+        dispensa[voce.chiave] = valorePresente;
+        void registra();
+      });
+      return el('label', {}, [radio, el('span', {}, [etichetta])]) as HTMLLabelElement;
+    }
+
+    const quantita = quantitaLeggibile({
+      nome: voce.nome,
+      reparto: voce.reparto,
+      ...(voce.quantita.valore === undefined ? {} : { quantita: voce.quantita.valore }),
+      ...(voce.quantita.unita === undefined ? {} : { unita: voce.quantita.unita }),
+    });
+
+    return el('li', { class: 'voce' }, [
+      el('div', { class: 'voce__riga' }, [
+        el('div', { class: 'voce__testo' }, [
+          el('div', { class: 'voce__nome' }, [quantita === '' ? voce.nome : `${voce.nome} — ${quantita}`]),
+          el('div', { class: 'voce__dettaglio' }, [
+            `${T.reparti[voce.reparto]} · ${interpola(T.dispensa.daRicette, { ricette: voce.ricette.join(', ') })}`,
+          ]),
+        ]),
+        el('div', { class: 'scelta-doppia', role: 'group', 'aria-label': voce.nome }, [
+          opzione(T.dispensa.manca, false),
+          opzione(T.dispensa.ceLHo, true),
+        ]),
+      ]),
+    ]) as HTMLLIElement;
+  }
+
+  function disegna(): void {
+    svuota(elenco);
+    if (voci.length === 0) {
+      elenco.append(el('li', {}, [messaggioVuoto(T.dispensa.vuota, T.dispensa.vuotaAiuto)]));
+      return;
+    }
+    for (const voce of voci) elenco.append(riga(voce));
+  }
+
+  disegna();
+  aggiornaConteggio();
+
+  trova('#tutto-presente').addEventListener('click', async () => {
+    for (const voce of voci) dispensa[voce.chiave] = true;
+    await registra();
+    disegna();
+  });
+  trova('#tutto-mancante').addEventListener('click', async () => {
+    for (const voce of voci) dispensa[voce.chiave] = false;
+    await registra();
+    disegna();
+  });
+</script>

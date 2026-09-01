@@ -1,0 +1,211 @@
+---
+import Base from '../../layouts/Base.astro';
+import Icona from '../../components/Icona.astro';
+import { T } from '../../i18n';
+import { PERCORSI } from '../../lib/percorsi';
+---
+
+<Base titolo={T.nav.ricette}>
+  <p><a class="piccolo" href={PERCORSI.ricette}>&larr; {T.nav.ricette}</a></p>
+
+  <div id="messaggio" class="messaggio" role="status" hidden></div>
+
+  <article id="ricetta" hidden>
+    <h1 id="titolo">{T.stati.caricamento}</h1>
+    <p class="tenue" id="descrizione"></p>
+
+    <ul class="dati-ricetta" id="dati"></ul>
+
+    <div class="gruppo-bottoni spazio-sotto">
+      <a class="bottone bottone--accento bottone--grande" id="azione-cucina" href={PERCORSI.cucina}>
+        <Icona nome="play" dimensione={22} />
+        {T.azioni.cucina}
+      </a>
+      <button class="bottone bottone--secondario" type="button" id="azione-spesa">
+        <Icona nome="carrello" dimensione={20} />
+        {T.azioni.aggiungiAllaSpesa}
+      </button>
+      <button class="bottone bottone--secondario bottone--icona" type="button" id="azione-preferita" aria-pressed="false">
+        <Icona nome="stella" dimensione={20} />
+        <span class="solo-lettori-schermo" id="azione-preferita-testo">{T.azioni.preferita}</span>
+      </button>
+      <a class="bottone bottone--secondario bottone--icona" id="azione-modifica" href={PERCORSI.modifica} aria-label={T.azioni.modifica}>
+        <Icona nome="matita" dimensione={20} />
+      </a>
+      <button class="bottone bottone--pericolo bottone--icona" type="button" id="azione-elimina" aria-label={T.azioni.elimina}>
+        <Icona nome="cestino" dimensione={20} />
+      </button>
+    </div>
+
+    <h2>{T.ricetta.ingredienti}</h2>
+    <div class="porzioni">
+      <button class="bottone bottone--secondario bottone--icona" type="button" id="porzioni-meno" aria-label={T.ricetta.porzioniMeno}>
+        <Icona nome="meno" dimensione={20} />
+      </button>
+      <span class="porzioni__valore" id="porzioni-valore" aria-live="polite">4</span>
+      <button class="bottone bottone--secondario bottone--icona" type="button" id="porzioni-piu" aria-label={T.ricetta.porzioniPiu}>
+        <Icona nome="piu" dimensione={20} />
+      </button>
+      <span class="piccolo tenue" id="porzioni-nota"></span>
+    </div>
+    <div id="ingredienti"></div>
+
+    <h2>{T.ricetta.passaggi}</h2>
+    <ol class="elenco-passaggi" id="passaggi"></ol>
+
+    <section id="sezione-note" hidden>
+      <h2>{T.ricetta.note}</h2>
+      <p id="note"></p>
+    </section>
+
+    <p class="piccolo tenue" id="fonte" hidden></p>
+  </article>
+
+  <dialog id="dialogo-elimina" aria-labelledby="dialogo-elimina-titolo">
+    <h2 id="dialogo-elimina-titolo">{T.ricetta.eliminaTitolo}</h2>
+    <p>{T.ricetta.eliminaTesto}</p>
+    <div class="gruppo-bottoni">
+      <button class="bottone bottone--pericolo" type="button" id="conferma-elimina">{T.azioni.confermaElimina}</button>
+      <button class="bottone bottone--secondario" type="button" id="annulla-elimina">{T.azioni.annulla}</button>
+    </div>
+  </dialog>
+</Base>
+
+<script>
+  import { T, interpola } from '../../i18n';
+  import { caricaRicette } from '../../lib/seed';
+  import { archivio } from '../../lib/archivio';
+  import { elencoIngredienti, messaggioVuoto, tempoTotale } from '../../lib/viste';
+  import { annuncia, el, svuota, trova } from '../../lib/dom';
+  import { PERCORSI, parametro, urlCucina, urlModifica } from '../../lib/percorsi';
+  import { scalaIngredienti } from '../../lib/scala';
+  import type { SelezioneRicetta } from '../../lib/spesa';
+  import type { Ricetta } from '../../lib/tipi';
+
+  const id = parametro('id');
+  const messaggio = trova('#messaggio');
+  const ricette = await caricaRicette();
+  const ricetta: Ricetta | undefined = ricette.find((r) => r.id === id);
+
+  if (ricetta === undefined) {
+    messaggio.hidden = false;
+    messaggio.dataset['tipo'] = 'errore';
+    svuota(messaggio);
+    messaggio.append(messaggioVuoto(T.ricetta.nonTrovata, T.ricetta.nonTrovataAiuto));
+  } else {
+    const scheda = ricetta;
+    trova('#ricetta').hidden = false;
+    document.title = `${scheda.titolo} · ${T.app.nome}`;
+    trova('#titolo').textContent = scheda.titolo;
+    const descrizione = trova('#descrizione');
+    descrizione.textContent = scheda.descrizione;
+    descrizione.hidden = scheda.descrizione === '';
+
+    // Dati sintetici della ricetta.
+    const dati = trova('#dati');
+    svuota(dati);
+    dati.append(
+      el('li', {}, [`${T.categorie[scheda.categoria]}`]),
+      el('li', {}, [`${T.ricetta.preparazione}: ${scheda.tempoPreparazioneMin} ${T.ricetta.minuti}`]),
+      el('li', {}, [`${T.ricetta.cottura}: ${scheda.tempoCotturaMin} ${T.ricetta.minuti}`]),
+      el('li', {}, [`${T.ricetta.totale}: ${tempoTotale(scheda)} ${T.ricetta.minuti}`]),
+      el('li', {}, [`${T.ricetta.difficolta}: ${T.difficolta[scheda.difficolta]}`]),
+    );
+
+    // Passaggi.
+    const passaggi = trova('#passaggi');
+    svuota(passaggi);
+    for (const passaggio of scheda.passaggi) {
+      passaggi.append(
+        el('li', {}, [
+          passaggio.testo,
+          passaggio.timerSecondi === undefined
+            ? null
+            : el('span', { class: 'etichetta etichetta-passaggio' }, [
+                `${Math.round(passaggio.timerSecondi / 60)} ${T.ricetta.minuti} · ${T.ricetta.conTimer}`,
+              ]),
+        ]),
+      );
+    }
+
+    if (scheda.note !== undefined) {
+      trova('#sezione-note').hidden = false;
+      trova('#note').textContent = scheda.note;
+    }
+    if (scheda.fonte !== undefined) {
+      const fonte = trova('#fonte');
+      fonte.hidden = false;
+      fonte.textContent = `${T.ricetta.fonte}: ${scheda.fonte}`;
+    }
+
+    // Porzioni scalabili.
+    let porzioni = scheda.porzioni;
+    const valore = trova('#porzioni-valore');
+    const contenitoreIngredienti = trova('#ingredienti');
+    const nota = trova('#porzioni-nota');
+
+    function disegnaIngredienti(): void {
+      valore.textContent = String(porzioni);
+      nota.textContent = porzioni === scheda.porzioni ? '' : interpola(T.ricetta.porzioniOriginali, { n: scheda.porzioni });
+      svuota(contenitoreIngredienti);
+      contenitoreIngredienti.append(elencoIngredienti(scalaIngredienti(scheda.ingredienti, scheda.porzioni, porzioni)));
+      trova<HTMLAnchorElement>('#azione-cucina').href = `${urlCucina(scheda.id)}&porzioni=${porzioni}`;
+    }
+
+    trova('#porzioni-meno').addEventListener('click', () => {
+      if (porzioni > 1) porzioni -= 1;
+      disegnaIngredienti();
+    });
+    trova('#porzioni-piu').addEventListener('click', () => {
+      if (porzioni < 50) porzioni += 1;
+      disegnaIngredienti();
+    });
+    disegnaIngredienti();
+
+    trova<HTMLAnchorElement>('#azione-modifica').href = urlModifica(scheda.id);
+
+    // Preferita.
+    const bottonePreferita = trova<HTMLButtonElement>('#azione-preferita');
+    const testoPreferita = trova('#azione-preferita-testo');
+    function aggiornaPreferita(): void {
+      bottonePreferita.setAttribute('aria-pressed', String(scheda.preferita));
+      testoPreferita.textContent = scheda.preferita ? T.azioni.nonPreferita : T.azioni.preferita;
+      bottonePreferita.classList.toggle('bottone--accento', scheda.preferita);
+    }
+    aggiornaPreferita();
+    bottonePreferita.addEventListener('click', async () => {
+      scheda.preferita = !scheda.preferita;
+      scheda.aggiornataIl = new Date().toISOString();
+      await archivio.salvaRicetta(scheda);
+      aggiornaPreferita();
+    });
+
+    // Aggiungi alla spesa.
+    trova('#azione-spesa').addEventListener('click', async () => {
+      const esito = await archivio.leggiStato<SelezioneRicetta[]>('spesa-selezione', []);
+      const selezione = esito.ok ? esito.dato : [];
+      const senzaQuesta = selezione.filter((s) => s.ricettaId !== scheda.id);
+      senzaQuesta.push({ ricettaId: scheda.id, porzioni });
+      await archivio.scriviStato('spesa-selezione', senzaQuesta);
+      // Cambiando la selezione, le spunte precedenti non valgono più.
+      await archivio.rimuoviStato('spesa-spuntate');
+      annuncia(messaggio, T.ricetta.aggiuntaAllaSpesa);
+    });
+
+    // Eliminazione con dialogo (niente confirm()).
+    const dialogo = trova<HTMLDialogElement>('#dialogo-elimina');
+    trova('#azione-elimina').addEventListener('click', () => dialogo.showModal());
+    trova('#annulla-elimina').addEventListener('click', () => dialogo.close());
+    trova('#conferma-elimina').addEventListener('click', async () => {
+      await archivio.cancellaRicetta(scheda.id);
+      dialogo.close();
+      location.href = PERCORSI.ricette;
+    });
+
+    // Memoria delle ultime aperte.
+    const recenti = await archivio.leggiStato<string[]>('ultime-aperte', []);
+    const elencoRecenti = recenti.ok ? recenti.dato.filter((v) => v !== scheda.id) : [];
+    elencoRecenti.unshift(scheda.id);
+    await archivio.scriviStato('ultime-aperte', elencoRecenti.slice(0, 6));
+  }
+</script>

@@ -1,0 +1,90 @@
+---
+/**
+ * Guscio comune a tutte le schermate.
+ * Nessuna stringa di interfaccia qui dentro: tutto passa da `src/i18n/it.json`.
+ */
+import '../styles/global.css';
+import { T } from '../i18n';
+import { PERCORSI, percorso } from '../lib/percorsi';
+import BarraNav from '../components/BarraNav.astro';
+import Marchio from '../components/Marchio.astro';
+import Avvio from '../components/Avvio.astro';
+
+interface Props {
+  titolo: string;
+  descrizione?: string;
+  /** La modalità Cucina occupa tutto lo schermo: niente barre. */
+  senzaGuscio?: boolean;
+  classeBody?: string;
+}
+
+const { titolo, descrizione = T.app.descrizione, senzaGuscio = false, classeBody = '' } = Astro.props;
+const titoloPagina = titolo === T.app.nome ? T.app.nome : `${titolo} · ${T.app.nome}`;
+const canonico = new URL(Astro.url.pathname, Astro.site).href;
+---
+
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{titoloPagina}</title>
+    <meta name="description" content={descrizione} />
+    <link rel="canonical" href={canonico} />
+
+    <link rel="manifest" href={percorso('manifest.webmanifest')} />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf7f2" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#161a17" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content={T.app.nome} />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="icon" href={percorso('favicon.svg')} type="image/svg+xml" />
+    <link rel="apple-touch-icon" href={percorso('icone/icona-180.png')} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={titoloPagina} />
+    <meta property="og:description" content={descrizione} />
+    <meta property="og:url" content={canonico} />
+    <meta property="og:locale" content="it_IT" />
+    <meta name="twitter:card" content="summary" />
+  </head>
+  <body class={classeBody}>
+    <a class="salta-contenuto" href="#contenuto">{T.nav.saltaAlContenuto}</a>
+
+    {
+      !senzaGuscio && (
+        <header class="intestazione">
+          <a class="intestazione__marchio" href={PERCORSI.home}>
+            <Marchio dimensione={28} />
+            <span>{T.app.nome}</span>
+          </a>
+          <div class="intestazione__azioni">
+            <a class="bottone bottone--secondario bottone--icona" href={PERCORSI.info} aria-label={T.info.titolo}>
+              <span aria-hidden="true">?</span>
+            </a>
+          </div>
+        </header>
+      )
+    }
+
+    <slot name="prima-del-contenuto" />
+
+    <main id="contenuto" class={senzaGuscio ? '' : 'contenuto'}>
+      <slot />
+    </main>
+
+    {!senzaGuscio && <BarraNav />}
+
+    <div class="banner-aggiornamento" id="banner-aggiornamento" hidden>
+      <span>{T.pwa.aggiornamentoTitolo}</span>
+      <button class="bottone" type="button" id="banner-ricarica">{T.pwa.aggiornamentoAzione}</button>
+      <button class="bottone bottone--secondario" type="button" id="banner-ignora">
+        {T.pwa.aggiornamentoIgnora}
+      </button>
+    </div>
+
+    <Avvio />
+  </body>
+</html>

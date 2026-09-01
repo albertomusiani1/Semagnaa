@@ -1,0 +1,157 @@
+---
+import Base from '../../layouts/Base.astro';
+import Icona from '../../components/Icona.astro';
+import { T } from '../../i18n';
+import { PERCORSI } from '../../lib/percorsi';
+---
+
+<Base titolo={T.lista.titolo}>
+  <h1>{T.lista.titolo}</h1>
+  <ol class="passi">
+    <li><a href={PERCORSI.spesa}>{T.spesa.passo1}</a></li>
+    <li><a href={PERCORSI.dispensa}>{T.spesa.passo2}</a></li>
+    <li aria-current="step">{T.spesa.passo3}</li>
+  </ol>
+
+  <p class="tenue">{T.lista.aiuto}</p>
+  <p class="messaggio" id="messaggio" role="status" hidden></p>
+  <p class="piccolo tenue" id="conteggio" aria-live="polite"></p>
+
+  <div id="elenco"><p class="tenue">{T.stati.caricamento}</p></div>
+
+  <div class="azioni-fisse">
+    <button class="bottone bottone--secondario" type="button" id="copia">
+      <Icona nome="copia" dimensione={20} />
+      {T.azioni.copia}
+    </button>
+    <button class="bottone bottone--secondario" type="button" id="condividi" hidden>
+      <Icona nome="condividi" dimensione={20} />
+      {T.azioni.condividi}
+    </button>
+    <button class="bottone bottone--secondario" type="button" id="azzera">{T.lista.azzeraSpunte}</button>
+    <button class="bottone bottone--pericolo" type="button" id="svuota">{T.lista.svuota}</button>
+  </div>
+</Base>
+
+<script>
+  import { T, interpola } from '../../i18n';
+  import { caricaRicette } from '../../lib/seed';
+  import { archivio } from '../../lib/archivio';
+  import { annuncia, el, svuota, trova } from '../../lib/dom';
+  import { messaggioVuoto, quantitaLeggibile } from '../../lib/viste';
+  import { formatta } from '../../lib/unita';
+  import { aggrega, comeTesto, raggruppaPerReparto, vociMancanti, type SelezioneRicetta, type VoceSpesa } from '../../lib/spesa';
+  import { PERCORSI } from '../../lib/percorsi';
+
+  const elenco = trova('#elenco');
+  const conteggio = trova('#conteggio');
+  const messaggio = trova('#messaggio');
+
+  const ricette = await caricaRicette();
+  const selezioneSalvata = await archivio.leggiStato<SelezioneRicetta[]>('spesa-selezione', []);
+  const dispensaSalvata = await archivio.leggiStato<Record<string, boolean>>('spesa-dispensa', {});
+  const spuntateSalvate = await archivio.leggiStato<Record<string, boolean>>('spesa-spuntate', {});
+
+  const dispensa = dispensaSalvata.ok ? dispensaSalvata.dato : {};
+  const spuntate: Record<string, boolean> = spuntateSalvate.ok ? spuntateSalvate.dato : {};
+  const tutte = aggrega(ricette, selezioneSalvata.ok ? selezioneSalvata.dato : []);
+  const mancanti = vociMancanti(tutte, dispensa);
+  const gruppi = raggruppaPerReparto(mancanti);
+
+  function testoVoce(voce: VoceSpesa): string {
+    const quantita = quantitaLeggibile({
+      nome: voce.nome,
+      reparto: voce.reparto,
+      ...(voce.quantita.valore === undefined ? {} : { quantita: voce.quantita.valore }),
+      ...(voce.quantita.unita === undefined ? {} : { unita: voce.quantita.unita }),
+    });
+    return quantita === '' ? voce.nome : `${voce.nome} — ${quantita}`;
+  }
+
+  function aggiornaConteggio(): void {
+    const fatti = mancanti.filter((voce) => spuntate[voce.chiave] === true).length;
+    conteggio.textContent = interpola(T.lista.conteggio, { fatti, totale: mancanti.length });
+  }
+
+  function riga(voce: VoceSpesa): HTMLLIElement {
+    const fatta = spuntate[voce.chiave] === true;
+    const idCampo = `spunta-${voce.chiave.replace(/[^a-z0-9]/gi, '-')}`;
+    const spunta = el('input', { type: 'checkbox', id: idCampo, checked: fatta }) as HTMLInputElement;
+    const li = el('li', { class: fatta ? 'voce voce--fatta' : 'voce' }, [
+      el('div', { class: 'voce__riga' }, [
+        spunta,
+        el('div', { class: 'voce__testo' }, [
+          el('label', { class: 'voce__nome', for: idCampo }, [testoVoce(voce)]),
+          el('div', { class: 'voce__dettaglio' }, [
+            interpola(T.dispensa.daRicette, { ricette: voce.ricette.join(', ') }),
+          ]),
+        ]),
+      ]),
+    ]) as HTMLLIElement;
+
+    spunta.addEventListener('change', async () => {
+      spuntate[voce.chiave] = spunta.checked;
+      li.classList.toggle('voce--fatta', spunta.checked);
+      await archivio.scriviStato('spesa-spuntate', spuntate);
+      aggiornaConteggio();
+    });
+    return li;
+  }
+
+  function disegna(): void {
+    svuota(elenco);
+    if (mancanti.length === 0) {
+      elenco.append(messaggioVuoto(T.lista.vuota, T.lista.vuotaAiuto));
+      conteggio.textContent = '';
+      return;
+    }
+    for (const gruppo of gruppi) {
+      const sezione = el('section', { class: 'gruppo-reparto' }, [
+        el('h2', {}, [T.reparti[gruppo.reparto]]),
+        el('ul', { class: 'elenco-spesa' }, gruppo.voci.map((voce) => riga(voce))),
+      ]);
+      elenco.append(sezione);
+    }
+    aggiornaConteggio();
+  }
+
+  disegna();
+
+  function listaTestuale(): string {
+    return comeTesto(gruppi, T.lista.titoloCondivisione, T.reparti, T.unita, formatta);
+  }
+
+  trova('#copia').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(listaTestuale());
+      annuncia(messaggio, T.lista.copiata);
+    } catch {
+      annuncia(messaggio, T.lista.copiaFallita, 'errore');
+    }
+  });
+
+  const bottoneCondividi = trova<HTMLButtonElement>('#condividi');
+  if (typeof navigator.share === 'function') {
+    bottoneCondividi.hidden = false;
+    bottoneCondividi.addEventListener('click', async () => {
+      try {
+        await navigator.share({ title: T.lista.titoloCondivisione, text: listaTestuale() });
+      } catch {
+        /* condivisione annullata dall'utente: nessun messaggio */
+      }
+    });
+  }
+
+  trova('#azzera').addEventListener('click', async () => {
+    for (const chiave of Object.keys(spuntate)) delete spuntate[chiave];
+    await archivio.scriviStato('spesa-spuntate', spuntate);
+    location.reload();
+  });
+
+  trova('#svuota').addEventListener('click', async () => {
+    await archivio.rimuoviStato('spesa-selezione');
+    await archivio.rimuoviStato('spesa-dispensa');
+    await archivio.rimuoviStato('spesa-spuntate');
+    location.href = PERCORSI.spesa;
+  });
+</script>

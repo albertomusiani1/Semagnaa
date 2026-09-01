@@ -1,0 +1,139 @@
+---
+import Base from '../../layouts/Base.astro';
+import { T } from '../../i18n';
+---
+
+<Base titolo={T.impostazioni.titolo}>
+  <h1>{T.impostazioni.titolo}</h1>
+  <p class="messaggio" id="messaggio" role="status" hidden></p>
+
+  <section class="sezione">
+    <h2>{T.impostazioni.sezioneAspetto}</h2>
+    <div class="campo">
+      <label for="tema">{T.impostazioni.tema}</label>
+      <select id="tema" name="tema">
+        <option value="auto">{T.impostazioni.temaAuto}</option>
+        <option value="chiaro">{T.impostazioni.temaChiaro}</option>
+        <option value="scuro">{T.impostazioni.temaScuro}</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="sezione">
+    <h2>{T.impostazioni.sezioneDati}</h2>
+    <p class="tenue">{T.impostazioni.datiAiuto}</p>
+
+    <h3>{T.impostazioni.esportaTitolo}</h3>
+    <p><button class="bottone bottone--secondario" type="button" id="esporta">{T.impostazioni.esportaAzione}</button></p>
+
+    <h3>{T.impostazioni.importaTitolo}</h3>
+    <p class="piccolo tenue">{T.impostazioni.importaAiuto}</p>
+    <div class="campo">
+      <label for="file-importa">{T.impostazioni.importaAzione}</label>
+      <input type="file" id="file-importa" accept="application/json,.json" />
+    </div>
+
+    <h3>{T.impostazioni.seedTitolo}</h3>
+    <p class="piccolo tenue">{T.impostazioni.seedAiuto}</p>
+    <p><button class="bottone bottone--secondario" type="button" id="ricarica-seed">{T.impostazioni.seedAzione}</button></p>
+
+    <h3>{T.impostazioni.azzeraTitolo}</h3>
+    <p class="piccolo tenue">{T.impostazioni.azzeraAiuto}</p>
+    <p><button class="bottone bottone--pericolo" type="button" id="azzera">{T.impostazioni.azzeraAzione}</button></p>
+  </section>
+
+  <section class="sezione">
+    <h2>{T.impostazioni.sezioneApp}</h2>
+    <ul class="dati-ricetta">
+      <li>{T.impostazioni.versione}: <span id="versione">—</span></li>
+      <li>{T.impostazioni.ricetteInArchivio}: <span id="quante">—</span></li>
+      <li id="offline" hidden>{T.impostazioni.statoOffline}</li>
+    </ul>
+  </section>
+
+  <dialog id="dialogo-azzera" aria-labelledby="azzera-titolo">
+    <h2 id="azzera-titolo">{T.impostazioni.azzeraConferma}</h2>
+    <p>{T.impostazioni.azzeraConfermaTesto}</p>
+    <div class="gruppo-bottoni">
+      <button class="bottone bottone--pericolo" type="button" id="azzera-si">{T.azioni.confermaElimina}</button>
+      <button class="bottone bottone--secondario" type="button" id="azzera-no">{T.azioni.annulla}</button>
+    </div>
+  </dialog>
+</Base>
+
+<script>
+  import { T, interpola } from '../../i18n';
+  import { archivio } from '../../lib/archivio';
+  import { annuncia, trova } from '../../lib/dom';
+  import { assicuraSeed, caricaRicette } from '../../lib/seed';
+  import { validaImportazione } from '../../lib/validazione';
+  import { VERSIONE_APP } from '../../lib/versione';
+
+  const messaggio = trova('#messaggio');
+  const ricette = await caricaRicette();
+  trova('#quante').textContent = String(ricette.length);
+  trova('#versione').textContent = VERSIONE_APP;
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller !== null) {
+    trova('#offline').hidden = false;
+  }
+
+  // --- tema ---------------------------------------------------------------
+  const scelta = trova<HTMLSelectElement>('#tema');
+  const temaSalvato = await archivio.leggiStato<'auto' | 'chiaro' | 'scuro'>('tema', 'auto');
+  scelta.value = temaSalvato.ok ? temaSalvato.dato : 'auto';
+  scelta.addEventListener('change', async () => {
+    const valore = scelta.value as 'auto' | 'chiaro' | 'scuro';
+    await archivio.scriviStato('tema', valore);
+    if (valore === 'auto') delete document.documentElement.dataset.tema;
+    else document.documentElement.dataset.tema = valore;
+  });
+
+  // --- esportazione -------------------------------------------------------
+  trova('#esporta').addEventListener('click', () => {
+    const contenuto = JSON.stringify({ app: T.app.nome, versione: VERSIONE_APP, ricette }, null, 2);
+    const url = URL.createObjectURL(new Blob([contenuto], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `semagnaa-ricette-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // --- importazione -------------------------------------------------------
+  const campoFile = trova<HTMLInputElement>('#file-importa');
+  campoFile.addEventListener('change', async () => {
+    const file = campoFile.files?.[0];
+    if (file === undefined) return;
+    const esito = validaImportazione(await file.text());
+    if (!esito.ok) {
+      const chiave = esito.errore.replace('errori.', '') as keyof typeof T.errori;
+      annuncia(messaggio, T.errori[chiave] ?? esito.errore, 'errore');
+      campoFile.value = '';
+      return;
+    }
+    await archivio.unisciRicette(esito.dato);
+    annuncia(messaggio, interpola(T.impostazioni.importate, { n: esito.dato.length }));
+    campoFile.value = '';
+  });
+
+  // --- ricette di esempio -------------------------------------------------
+  trova('#ricarica-seed').addEventListener('click', async () => {
+    try {
+      await assicuraSeed(true);
+      annuncia(messaggio, T.impostazioni.seedFatto);
+    } catch {
+      annuncia(messaggio, T.errori.seedNonCaricato, 'errore');
+    }
+  });
+
+  // --- azzeramento --------------------------------------------------------
+  const dialogo = trova<HTMLDialogElement>('#dialogo-azzera');
+  trova('#azzera').addEventListener('click', () => dialogo.showModal());
+  trova('#azzera-no').addEventListener('click', () => dialogo.close());
+  trova('#azzera-si').addEventListener('click', async () => {
+    await archivio.azzeraTutto();
+    dialogo.close();
+    annuncia(messaggio, T.impostazioni.azzerato);
+    trova('#quante').textContent = '0';
+  });
+</script>

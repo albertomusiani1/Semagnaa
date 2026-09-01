@@ -1,0 +1,131 @@
+---
+import Base from '../layouts/Base.astro';
+import Icona from '../components/Icona.astro';
+import { T } from '../i18n';
+import { PERCORSI, urlModifica } from '../lib/percorsi';
+---
+
+<Base titolo={T.home.titolo}>
+  <h1>{T.home.sottotitolo}</h1>
+
+  <section class="sezione" id="ripresa" hidden aria-labelledby="ripresa-titolo">
+    <div class="voce">
+      <h2 id="ripresa-titolo" class="scheda__titolo">{T.home.sessioneInCorso}</h2>
+      <p class="piccolo tenue" id="ripresa-dettaglio"></p>
+      <div class="gruppo-bottoni">
+        <a class="bottone bottone--accento" id="ripresa-link" href={PERCORSI.cucina}>
+          <Icona nome="play" dimensione={20} />
+          {T.azioni.riprendi}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="sezione">
+    <h2 class="solo-lettori-schermo">{T.home.scorciatoie}</h2>
+    <ul class="griglia">
+      <li class="scheda">
+        <div class="scheda__corpo">
+          <h3 class="scheda__titolo">
+            <a href={PERCORSI.spesa}>{T.home.vaiAllaSpesa}</a>
+          </h3>
+          <p class="scheda__descrizione">{T.home.vaiAllaSpesaDettaglio}</p>
+          <p class="scheda__meta">
+            <a class="bottone bottone--secondario" href={PERCORSI.spesa}>
+              <Icona nome="carrello" dimensione={20} />
+              {T.spesa.titolo}
+            </a>
+          </p>
+        </div>
+      </li>
+      <li class="scheda">
+        <div class="scheda__corpo">
+          <h3 class="scheda__titolo">
+            <a href={urlModifica()}>{T.home.creaRicetta}</a>
+          </h3>
+          <p class="scheda__descrizione">{T.home.creaRicettaDettaglio}</p>
+          <p class="scheda__meta">
+            <a class="bottone bottone--secondario" href={urlModifica()}>
+              <Icona nome="piu" dimensione={20} />
+              {T.azioni.nuovaRicetta}
+            </a>
+          </p>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <section class="sezione" aria-labelledby="preferite-titolo">
+    <div class="sezione__intestazione">
+      <h2 id="preferite-titolo">{T.home.preferite}</h2>
+      <a class="piccolo" href={PERCORSI.ricette}>{T.azioni.vediTutte}</a>
+    </div>
+    <div id="preferite"><p class="tenue">{T.stati.caricamento}</p></div>
+  </section>
+
+  <section class="sezione" aria-labelledby="recenti-titolo" id="sezione-recenti" hidden>
+    <div class="sezione__intestazione">
+      <h2 id="recenti-titolo">{T.home.ultimeAperte}</h2>
+    </div>
+    <div id="recenti"></div>
+  </section>
+
+  <p class="tenue piccolo" id="conteggio"></p>
+</Base>
+
+<script>
+  import { T, interpola } from '../i18n';
+  import { caricaRicette, ordinaRicette } from '../lib/seed';
+  import { archivio } from '../lib/archivio';
+  import { grigliaRicette, messaggioVuoto } from '../lib/viste';
+  import { trova, svuota, cerca } from '../lib/dom';
+  import { urlCucina } from '../lib/percorsi';
+  import type { SessioneCucina } from '../lib/sessione';
+
+  const ricette = ordinaRicette(await caricaRicette());
+
+  // --- preferite -----------------------------------------------------------
+  const contenitorePreferite = trova('#preferite');
+  svuota(contenitorePreferite);
+  const preferite = ricette.filter((r) => r.preferita);
+  if (ricette.length === 0) {
+    contenitorePreferite.append(messaggioVuoto(T.home.nessunaRicetta));
+  } else if (preferite.length === 0) {
+    contenitorePreferite.append(messaggioVuoto(T.home.nessunaPreferita));
+  } else {
+    contenitorePreferite.append(grigliaRicette(preferite));
+  }
+
+  // --- aperte di recente ---------------------------------------------------
+  const recenti = await archivio.leggiStato<string[]>('ultime-aperte', []);
+  const idRecenti = recenti.ok ? recenti.dato : [];
+  const ricetteRecenti = idRecenti
+    .map((id) => ricette.find((r) => r.id === id))
+    .filter((r): r is NonNullable<typeof r> => r !== undefined)
+    .slice(0, 3);
+  if (ricetteRecenti.length > 0) {
+    const sezione = trova('#sezione-recenti');
+    sezione.hidden = false;
+    const contenitore = trova('#recenti');
+    svuota(contenitore);
+    contenitore.append(grigliaRicette(ricetteRecenti));
+  }
+
+  // --- sessione di cucina da riprendere ------------------------------------
+  const sessione = await archivio.leggiStato<SessioneCucina | null>('sessione-cucina', null);
+  if (sessione.ok && sessione.dato !== null) {
+    const dati = sessione.dato;
+    const ricetta = ricette.find((r) => r.id === dati.ricettaId);
+    if (ricetta !== undefined) {
+      trova('#ripresa').hidden = false;
+      trova('#ripresa-dettaglio').textContent = interpola(T.home.sessioneInCorsoDettaglio, {
+        passaggio: dati.passaggio + 1,
+        totale: ricetta.passaggi.length,
+      });
+      const link = cerca<HTMLAnchorElement>('#ripresa-link');
+      if (link !== null) link.href = urlCucina(ricetta.id);
+    }
+  }
+
+  trova('#conteggio').textContent = interpola(T.home.conteggio, { n: ricette.length });
+</script>

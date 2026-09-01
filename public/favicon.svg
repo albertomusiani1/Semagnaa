@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="Semagnaa">
+  <circle cx="24" cy="24" r="22" fill="#2f3e36"/>
+  <path d="M11 27h26a13 13 0 0 1-13 12 13 13 0 0 1-13-12z" fill="#faf7f2"/>
+  <path d="M18 9v9M24 7v11M30 9v9" stroke="#faf7f2" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+</svg>

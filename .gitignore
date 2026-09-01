@@ -1,0 +1,21 @@
+# dipendenze
+node_modules/
+
+# build
+dist/
+.astro/
+
+# ambiente
+.env
+.env.*
+!.env.example
+
+# strumenti e report locali
+.lighthouseci/
+verifiche/
+*.log
+npm-debug.log*
+
+# sistema
+.DS_Store
+Thumbs.db

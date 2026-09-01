@@ -1,0 +1,11 @@
+---
+import Base from '../layouts/Base.astro';
+import { T } from '../i18n';
+import { PERCORSI } from '../lib/percorsi';
+---
+
+<Base titolo={T.errore404.titolo}>
+  <h1>{T.errore404.titolo}</h1>
+  <p>{T.errore404.testo}</p>
+  <a class="bottone" href={PERCORSI.home}>{T.errore404.azione}</a>
+</Base>

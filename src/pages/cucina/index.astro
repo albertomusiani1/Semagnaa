@@ -1,0 +1,392 @@
+---
+import Base from '../../layouts/Base.astro';
+import Icona from '../../components/Icona.astro';
+import { T } from '../../i18n';
+import { PERCORSI } from '../../lib/percorsi';
+---
+
+<Base titolo={T.cucina.titolo} senzaGuscio classeBody="in-cucina">
+  <div class="barra-timer" id="barra-timer" hidden>
+    <strong class="piccolo">{T.cucina.timerAttivi}</strong>
+    <span id="barra-timer-voci"></span>
+  </div>
+
+  <div class="cucina">
+    <header class="cucina__testa">
+      <button class="bottone bottone--secondario bottone--icona" type="button" id="esci" aria-label={T.azioni.esci}>
+        <Icona nome="freccia-sinistra" dimensione={22} />
+      </button>
+      <h1 class="cucina__titolo" id="titolo">{T.cucina.titolo}</h1>
+    </header>
+
+    <div class="cucina__progresso" role="presentation"><div id="progresso"></div></div>
+
+    <div class="cucina__corpo">
+      <p class="cucina__contatore" id="contatore" aria-live="polite"></p>
+      <p class="cucina__passaggio" id="passaggio"></p>
+
+      <div class="timer" id="timer" hidden data-stato="inattivo">
+        <p class="timer__etichetta" id="timer-etichetta"></p>
+        <p class="timer__valore" id="timer-valore" aria-live="off">00:00</p>
+        <div class="gruppo-bottoni">
+          <button class="bottone bottone--accento" type="button" id="timer-avvia">{T.cucina.avviaTimer}</button>
+          <button class="bottone bottone--secondario" type="button" id="timer-pausa" hidden>{T.cucina.pausa}</button>
+          <button class="bottone bottone--secondario" type="button" id="timer-piu">{T.cucina.piuUnMinuto}</button>
+          <button class="bottone bottone--secondario" type="button" id="timer-azzera">{T.cucina.azzeraTimer}</button>
+        </div>
+      </div>
+
+      <details class="voce">
+        <summary>{T.cucina.ingredientiDelPassaggio}</summary>
+        <div id="ingredienti"></div>
+      </details>
+
+      <p class="piccolo tenue" id="stato-schermo" hidden></p>
+      <p class="messaggio" id="annuncio" role="status" aria-live="assertive" hidden></p>
+    </div>
+
+    <footer class="cucina__piede">
+      <button
+        class="bottone bottone--secondario bottone--grande"
+        type="button"
+        id="precedente"
+        aria-label={T.cucina.precedente}
+      >
+        <Icona nome="freccia-sinistra" dimensione={22} />
+        {T.cucina.precedenteBreve}
+      </button>
+      <button class="bottone bottone--grande" type="button" id="successivo" aria-label={T.cucina.successivo}>
+        <span id="successivo-testo">{T.cucina.successivoBreve}</span>
+        <Icona nome="freccia-destra" dimensione={22} />
+      </button>
+    </footer>
+  </div>
+
+  <dialog id="dialogo-riprendi" aria-labelledby="riprendi-titolo">
+    <h2 id="riprendi-titolo">{T.cucina.riprendiTitolo}</h2>
+    <p id="riprendi-testo"></p>
+    <div class="gruppo-bottoni">
+      <button class="bottone" type="button" id="riprendi-si">{T.azioni.riprendi}</button>
+      <button class="bottone bottone--secondario" type="button" id="riprendi-no">{T.azioni.ricomincia}</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialogo-esci" aria-labelledby="esci-titolo">
+    <h2 id="esci-titolo">{T.cucina.esciTitolo}</h2>
+    <p>{T.cucina.esciTesto}</p>
+    <div class="gruppo-bottoni">
+      <button class="bottone bottone--pericolo" type="button" id="esci-si">{T.azioni.esci}</button>
+      <button class="bottone bottone--secondario" type="button" id="esci-no">{T.azioni.annulla}</button>
+    </div>
+  </dialog>
+
+  <dialog id="dialogo-fine" aria-labelledby="fine-titolo">
+    <h2 id="fine-titolo">{T.cucina.fine}</h2>
+    <p>{T.cucina.fineTesto}</p>
+    <div class="gruppo-bottoni">
+      <a class="bottone" id="fine-vai" href={PERCORSI.ricette}>{T.nav.ricette}</a>
+      <button class="bottone bottone--secondario" type="button" id="fine-resta">{T.azioni.chiudi}</button>
+    </div>
+  </dialog>
+</Base>
+
+<script>
+  import { T, interpola } from '../../i18n';
+  import { caricaRicette } from '../../lib/seed';
+  import { elencoIngredienti, messaggioVuoto } from '../../lib/viste';
+  import { annuncia, el, svuota, trova } from '../../lib/dom';
+  import { parametro, urlRicetta } from '../../lib/percorsi';
+  import { scalaIngredienti } from '../../lib/scala';
+  import { chiudiSessione, leggiSessione, salvaSessione, type SessioneCucina } from '../../lib/sessione';
+  import { SchermoAcceso, preparaSuono, suonaAllarme, vibra } from '../../lib/suono';
+  import {
+    aggiorna,
+    aggiungiSecondi,
+    avvia,
+    azzera,
+    creaTimer,
+    daSuonare,
+    formattaResiduo,
+    pausa,
+    percentualeCompletata,
+    residuoMs,
+    type Timer,
+  } from '../../lib/timer';
+  import type { Ricetta } from '../../lib/tipi';
+
+  const id = parametro('id');
+  const annuncio = trova('#annuncio');
+  const ricette = await caricaRicette();
+  const ricetta: Ricetta | undefined = ricette.find((r) => r.id === id);
+
+  if (ricetta === undefined) {
+    const corpo = trova('.cucina__corpo');
+    svuota(corpo);
+    corpo.append(messaggioVuoto(T.ricetta.nonTrovata, T.ricetta.nonTrovataAiuto));
+    trova('.cucina__piede').hidden = true;
+  } else {
+    const scheda = ricetta;
+    const porzioniRichieste = Number(parametro('porzioni') ?? scheda.porzioni);
+    const porzioni = Number.isFinite(porzioniRichieste) && porzioniRichieste > 0
+      ? Math.min(50, Math.round(porzioniRichieste))
+      : scheda.porzioni;
+
+    let sessione: SessioneCucina = {
+      ricettaId: scheda.id,
+      passaggio: 0,
+      porzioni,
+      iniziataIl: new Date().toISOString(),
+      timer: [],
+    };
+
+    const precedente = await leggiSessione();
+    const daRiprendere =
+      precedente !== null && precedente.ricettaId === scheda.id && precedente.passaggio > 0 ? precedente : null;
+
+    const schermo = new SchermoAcceso();
+    const statoSchermo = trova('#stato-schermo');
+
+    // --- disegno -----------------------------------------------------------
+    const titolo = trova('#titolo');
+    const contatore = trova('#contatore');
+    const testoPassaggio = trova('#passaggio');
+    const progresso = trova('#progresso');
+    const riquadroTimer = trova('#timer');
+    const etichettaTimer = trova('#timer-etichetta');
+    const valoreTimer = trova('#timer-valore');
+    const bottoneAvvia = trova<HTMLButtonElement>('#timer-avvia');
+    const bottonePausa = trova<HTMLButtonElement>('#timer-pausa');
+    const barra = trova('#barra-timer');
+    const barraVoci = trova('#barra-timer-voci');
+    const bottonePrecedente = trova<HTMLButtonElement>('#precedente');
+    const bottoneSuccessivo = trova<HTMLButtonElement>('#successivo');
+
+    titolo.textContent = scheda.titolo;
+    document.title = `${scheda.titolo} · ${T.cucina.titolo}`;
+    trova('#ingredienti').append(
+      elencoIngredienti(scalaIngredienti(scheda.ingredienti, scheda.porzioni, porzioni)),
+    );
+
+    function chiaveTimer(indice: number): string {
+      return `${scheda.id}-${indice}`;
+    }
+
+    function timerDelPassaggio(indice: number): Timer | undefined {
+      return sessione.timer.find((t) => t.id === chiaveTimer(indice));
+    }
+
+    function scriviTimer(timer: Timer): void {
+      const posizione = sessione.timer.findIndex((t) => t.id === timer.id);
+      if (posizione === -1) sessione.timer.push(timer);
+      else sessione.timer[posizione] = timer;
+      void salvaSessione(sessione);
+    }
+
+    function disegnaPassaggio(): void {
+      const indice = sessione.passaggio;
+      const passaggio = scheda.passaggi[indice];
+      if (passaggio === undefined) return;
+
+      contatore.textContent = interpola(T.cucina.passaggioDi, {
+        n: indice + 1,
+        totale: scheda.passaggi.length,
+      });
+      testoPassaggio.textContent = passaggio.testo;
+      progresso.style.width = `${((indice + 1) / scheda.passaggi.length) * 100}%`;
+      bottonePrecedente.disabled = indice === 0;
+      const ultimo = indice === scheda.passaggi.length - 1;
+      trova('#successivo-testo').textContent = ultimo ? T.cucina.fineBreve : T.cucina.successivoBreve;
+      bottoneSuccessivo.setAttribute('aria-label', ultimo ? T.cucina.fine : T.cucina.successivo);
+
+      if (passaggio.timerSecondi === undefined) {
+        riquadroTimer.hidden = true;
+      } else {
+        riquadroTimer.hidden = false;
+        etichettaTimer.textContent = passaggio.timerEtichetta ?? T.cucina.avviaTimer;
+        if (timerDelPassaggio(indice) === undefined) {
+          scriviTimer(
+            creaTimer({
+              id: chiaveTimer(indice),
+              etichetta: passaggio.timerEtichetta ?? interpola(T.ricetta.passaggioN, { n: indice + 1 }),
+              durataSecondi: passaggio.timerSecondi,
+              ricettaId: scheda.id,
+              passaggio: indice,
+            }),
+          );
+        }
+      }
+      disegnaTimer();
+    }
+
+    function disegnaTimer(): void {
+      const ora = Date.now();
+      const timer = timerDelPassaggio(sessione.passaggio);
+      if (timer !== undefined && !riquadroTimer.hidden) {
+        valoreTimer.textContent = formattaResiduo(residuoMs(timer, ora));
+        riquadroTimer.dataset['stato'] = timer.stato;
+        bottoneAvvia.hidden = timer.stato === 'in-corso';
+        bottonePausa.hidden = timer.stato !== 'in-corso';
+        bottoneAvvia.textContent = timer.stato === 'in-pausa' ? T.cucina.riprendiTimer : T.cucina.avviaTimer;
+        valoreTimer.setAttribute(
+          'aria-label',
+          `${timer.etichetta}: ${formattaResiduo(residuoMs(timer, ora))}`,
+        );
+      }
+
+      // Barra dei timer attivi: visibile anche cambiando passaggio.
+      const attivi = sessione.timer.filter((t) => t.stato !== 'inattivo');
+      barra.hidden = attivi.length === 0;
+      svuota(barraVoci);
+      for (const attivo of attivi) {
+        barraVoci.append(
+          el('span', { class: 'barra-timer__voce', 'data-stato': attivo.stato }, [
+            `${attivo.etichetta}: `,
+            attivo.stato === 'scaduto' ? T.cucina.timerScadutoBreve : formattaResiduo(residuoMs(attivo, ora)),
+          ]),
+          ' ',
+        );
+      }
+      const inCorso = attivi.find((t) => t.stato === 'in-corso');
+      progresso.dataset['timer'] = inCorso === undefined ? '' : String(Math.round(percentualeCompletata(inCorso, ora)));
+    }
+
+    // --- ciclo di aggiornamento (timestamp assoluti, mai contatori) --------
+    function battito(): void {
+      const ora = Date.now();
+      let cambiato = false;
+      sessione.timer = sessione.timer.map((timer) => {
+        const nuovo = aggiorna(timer, ora);
+        if (nuovo !== timer) cambiato = true;
+        return nuovo;
+      });
+
+      for (const timer of sessione.timer) {
+        if (!daSuonare(timer)) continue;
+        timer.suonato = true;
+        cambiato = true;
+        suonaAllarme();
+        vibra();
+        annuncia(annuncio, interpola(T.cucina.timerScaduto, { etichetta: timer.etichetta }));
+      }
+
+      if (cambiato) void salvaSessione(sessione);
+      disegnaTimer();
+    }
+
+    // --- azioni ------------------------------------------------------------
+    bottoneAvvia.addEventListener('click', () => {
+      preparaSuono();
+      const timer = timerDelPassaggio(sessione.passaggio);
+      if (timer === undefined) return;
+      scriviTimer(avvia(timer, Date.now()));
+      disegnaTimer();
+      void schermo.richiedi().then((attivo) => {
+        statoSchermo.hidden = !attivo;
+        if (attivo) statoSchermo.textContent = T.cucina.schermoAcceso;
+      });
+    });
+
+    bottonePausa.addEventListener('click', () => {
+      const timer = timerDelPassaggio(sessione.passaggio);
+      if (timer === undefined) return;
+      scriviTimer(pausa(timer, Date.now()));
+      disegnaTimer();
+    });
+
+    trova('#timer-azzera').addEventListener('click', () => {
+      const timer = timerDelPassaggio(sessione.passaggio);
+      if (timer === undefined) return;
+      scriviTimer(azzera(timer));
+      annuncia(annuncio, '');
+      disegnaTimer();
+    });
+
+    trova('#timer-piu').addEventListener('click', () => {
+      preparaSuono();
+      const timer = timerDelPassaggio(sessione.passaggio);
+      if (timer === undefined) return;
+      scriviTimer(aggiungiSecondi(timer, 60, Date.now()));
+      disegnaTimer();
+    });
+
+    const dialogoFine = trova<HTMLDialogElement>('#dialogo-fine');
+
+    function vai(passo: number): void {
+      const nuovo = sessione.passaggio + passo;
+      if (nuovo < 0) return;
+      if (nuovo >= scheda.passaggi.length) {
+        dialogoFine.showModal();
+        return;
+      }
+      sessione.passaggio = nuovo;
+      void salvaSessione(sessione);
+      annuncia(annuncio, '');
+      disegnaPassaggio();
+      window.scrollTo({ top: 0 });
+    }
+
+    bottonePrecedente.addEventListener('click', () => vai(-1));
+    bottoneSuccessivo.addEventListener('click', () => {
+      preparaSuono();
+      vai(1);
+    });
+
+    document.addEventListener('keydown', (evento) => {
+      if (evento.target instanceof HTMLElement && evento.target.closest('dialog') !== null) return;
+      if (evento.key === 'ArrowRight') vai(1);
+      if (evento.key === 'ArrowLeft') vai(-1);
+    });
+
+    trova<HTMLAnchorElement>('#fine-vai').href = urlRicetta(scheda.id);
+    trova('#fine-resta').addEventListener('click', async () => {
+      dialogoFine.close();
+      await chiudiSessione();
+      await schermo.rilascia();
+    });
+
+    const dialogoEsci = trova<HTMLDialogElement>('#dialogo-esci');
+    trova('#esci').addEventListener('click', () => dialogoEsci.showModal());
+    trova('#esci-no').addEventListener('click', () => dialogoEsci.close());
+    trova('#esci-si').addEventListener('click', async () => {
+      await chiudiSessione();
+      await schermo.rilascia();
+      location.href = urlRicetta(scheda.id);
+    });
+
+    // Ritorno in primo piano: ricalcolo immediato e schermo di nuovo acceso.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      battito();
+      if (sessione.timer.some((t) => t.stato === 'in-corso')) void schermo.richiedi();
+    });
+
+    window.addEventListener('pagehide', () => {
+      void schermo.rilascia();
+    });
+
+    // --- ripresa della sessione precedente ---------------------------------
+    if (daRiprendere !== null) {
+      const dialogo = trova<HTMLDialogElement>('#dialogo-riprendi');
+      trova('#riprendi-testo').textContent = interpola(T.cucina.riprendiTesto, {
+        passaggio: daRiprendere.passaggio + 1,
+        totale: scheda.passaggi.length,
+      });
+      trova('#riprendi-si').addEventListener('click', () => {
+        sessione = daRiprendere;
+        dialogo.close();
+        disegnaPassaggio();
+      });
+      trova('#riprendi-no').addEventListener('click', () => {
+        void salvaSessione(sessione);
+        dialogo.close();
+        disegnaPassaggio();
+      });
+      dialogo.showModal();
+    } else {
+      await salvaSessione(sessione);
+    }
+
+    disegnaPassaggio();
+    setInterval(battito, 250);
+  }
+</script>

@@ -1,0 +1,18 @@
+---
+/** Logo dell'app: due archi e un cerchio, geometria coerente con la palette. */
+interface Props { dimensione?: number }
+const { dimensione = 28 } = Astro.props;
+---
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width={dimensione}
+  height={dimensione}
+  viewBox="0 0 48 48"
+  role="img"
+  aria-hidden="true"
+  focusable="false"
+>
+  <circle cx="24" cy="24" r="22" fill="var(--colore-primario)" />
+  <path d="M11 27h26a13 13 0 0 1-13 12 13 13 0 0 1-13-12z" fill="var(--fondo)" />
+  <path d="M18 9v9M24 7v11M30 9v9" stroke="var(--fondo)" stroke-width="2.6" stroke-linecap="round" />
+</svg>

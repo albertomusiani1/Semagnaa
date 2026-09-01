@@ -1,0 +1,26 @@
+---
+import Base from '../../layouts/Base.astro';
+import { T } from '../../i18n';
+---
+
+<Base titolo={T.info.titolo}>
+  <h1>{T.info.titolo}</h1>
+  <p class="tenue">{T.info.sottotitolo}</p>
+
+  <section class="sezione">
+    <h2>{T.info.puntoArchivio}</h2>
+    <p>{T.info.puntoArchivioTesto}</p>
+
+    <h2>{T.info.puntoCucina}</h2>
+    <p>{T.info.puntoCucinaTesto}</p>
+
+    <h2>{T.info.puntoSpesa}</h2>
+    <p>{T.info.puntoSpesaTesto}</p>
+
+    <h2>{T.info.puntoDati}</h2>
+    <p>{T.info.puntoDatiTesto}</p>
+
+    <h2>{T.info.puntoOffline}</h2>
+    <p>{T.info.puntoOfflineTesto}</p>
+  </section>
+</Base>

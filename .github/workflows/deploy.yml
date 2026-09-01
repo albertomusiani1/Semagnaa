@@ -1,0 +1,61 @@
+# Pubblicazione su GitHub Pages.
+#
+# Da fare una volta sola nel repository: Settings -> Pages -> Source: GitHub Actions.
+# Da quel momento ogni push sul branch principale ricostruisce e pubblica l'app.
+name: Pubblica su GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Controlli
+        run: |
+          npm run check
+          npm test
+
+      - name: Build
+        # BASE_PATH deve corrispondere al nome del repository.
+        # Con un dominio dedicato: BASE_PATH=/
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+          SITE_URL: https://${{ github.repository_owner }}.github.io
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

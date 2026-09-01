@@ -1,0 +1,32 @@
+{
+  "name": "semagnaa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Semagnaa — app personale di cucina: ricette, modalita Cucina passo a passo con timer, modalita Spesa con checklist dispensa. PWA offline, nessun backend.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.11.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && node scripts/gen-precache.mjs",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "node --test \"src/lib/*.test.ts\"",
+    "verifica:pagine": "node scripts/check-pages.mjs",
+    "verifica:dipendenze": "node scripts/check-no-deps.mjs",
+    "astro": "astro",
+    "verifica:flussi": "node scripts/verifica-flussi.mjs verifiche",
+    "verifica:responsive": "node scripts/verifica-responsive.mjs verifiche/screenshot",
+    "verifica:offline": "node scripts/verifica-offline.mjs"
+  },
+  "dependencies": {
+    "astro": "^7.2.10"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^26.4.0",
+    "typescript": "^6.0.3"
+  }
+}

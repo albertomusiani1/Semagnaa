@@ -1,0 +1,93 @@
+---
+import Base from '../../layouts/Base.astro';
+import Icona from '../../components/Icona.astro';
+import { T } from '../../i18n';
+import { CATEGORIE } from '../../lib/tipi';
+import { PERCORSI, urlModifica } from '../../lib/percorsi';
+---
+
+<Base titolo={T.ricette.titolo}>
+  <div class="sezione__intestazione">
+    <h1>{T.ricette.titolo}</h1>
+    <a class="bottone bottone--secondario" href={urlModifica()}>
+      <Icona nome="piu" dimensione={20} />
+      {T.azioni.nuovaRicetta}
+    </a>
+  </div>
+
+  <div class="campo">
+    <label for="cerca">{T.ricette.cerca}</label>
+    <input type="search" id="cerca" name="cerca" autocomplete="off" placeholder={T.ricette.cerca} />
+  </div>
+
+  <nav class="filtri" aria-label={T.ricette.filtraPerCategoria}>
+    <a class="filtri__voce" href={PERCORSI.ricette} data-categoria="">{T.ricette.tutte}</a>
+    {
+      CATEGORIE.map((categoria) => (
+        <a class="filtri__voce" href={`${PERCORSI.ricette}?categoria=${categoria}`} data-categoria={categoria}>
+          {T.categorie[categoria]}
+        </a>
+      ))
+    }
+  </nav>
+
+  <p class="tenue piccolo" id="conteggio" aria-live="polite"></p>
+  <div id="elenco"><p class="tenue">{T.stati.caricamento}</p></div>
+</Base>
+
+<script>
+  import { T } from '../../i18n';
+  import { caricaRicette, ordinaRicette } from '../../lib/seed';
+  import { contaRicette, grigliaRicette, messaggioVuoto } from '../../lib/viste';
+  import { svuota, trova, tutti } from '../../lib/dom';
+  import { normalizzaNome } from '../../lib/testo';
+  import { parametro } from '../../lib/percorsi';
+  import type { Categoria } from '../../lib/tipi';
+  import { CATEGORIE } from '../../lib/tipi';
+
+  const ricette = ordinaRicette(await caricaRicette());
+  const elenco = trova('#elenco');
+  const conteggio = trova('#conteggio');
+  const campoRicerca = trova<HTMLInputElement>('#cerca');
+
+  const grezza = parametro('categoria');
+  const categoria: Categoria | null =
+    grezza !== null && (CATEGORIE as readonly string[]).includes(grezza) ? (grezza as Categoria) : null;
+
+  for (const voce of tutti<HTMLAnchorElement>('.filtri__voce')) {
+    const suo = voce.dataset['categoria'] ?? '';
+    if ((categoria ?? '') === suo) voce.setAttribute('aria-current', 'true');
+  }
+
+  function disegna(): void {
+    const termine = normalizzaNome(campoRicerca.value);
+    const filtrate = ricette.filter((ricetta) => {
+      if (categoria !== null && ricetta.categoria !== categoria) return false;
+      if (termine === '') return true;
+      const dentro = [
+        ricetta.titolo,
+        ricetta.descrizione,
+        ...ricetta.tags,
+        ...ricetta.ingredienti.map((i) => i.nome),
+      ]
+        .map((t) => normalizzaNome(t))
+        .join(' ');
+      return dentro.includes(termine);
+    });
+
+    svuota(elenco);
+    conteggio.textContent = contaRicette(filtrate.length);
+    if (ricette.length === 0) {
+      elenco.append(messaggioVuoto(T.home.nessunaRicetta));
+      return;
+    }
+    if (filtrate.length === 0) {
+      elenco.append(messaggioVuoto(T.ricette.nessunRisultato, T.ricette.nessunRisultatoAiuto));
+      return;
+    }
+    elenco.append(grigliaRicette(filtrate));
+  }
+
+  campoRicerca.addEventListener('input', disegna);
+  disegna();
+</script>

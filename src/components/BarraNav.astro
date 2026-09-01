@@ -1,0 +1,35 @@
+---
+/**
+ * Barra di navigazione inferiore, stile app. Le etichette arrivano da i18n.
+ */
+import Icona from './Icona.astro';
+import { T } from '../i18n';
+import { PERCORSI } from '../lib/percorsi';
+
+const voci = [
+  { href: PERCORSI.home, etichetta: T.nav.home, icona: 'casa' as const },
+  { href: PERCORSI.ricette, etichetta: T.nav.ricette, icona: 'libro' as const },
+  { href: PERCORSI.spesa, etichetta: T.nav.spesa, icona: 'carrello' as const },
+  { href: PERCORSI.impostazioni, etichetta: T.nav.impostazioni, icona: 'ingranaggio' as const },
+];
+
+const attuale = Astro.url.pathname;
+function eAttiva(href: string): boolean {
+  if (href === PERCORSI.home) return attuale === PERCORSI.home;
+  return attuale.startsWith(href);
+}
+---
+<nav class="barra-nav" aria-label={T.nav.principale}>
+  <ul class="barra-nav__lista">
+    {
+      voci.map((voce) => (
+        <li class="barra-nav__voce">
+          <a href={voce.href} aria-current={eAttiva(voce.href) ? 'page' : undefined}>
+            <Icona nome={voce.icona} dimensione={22} />
+            <span>{voce.etichetta}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>

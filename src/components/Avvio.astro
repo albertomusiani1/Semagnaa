@@ -1,0 +1,68 @@
+---
+/**
+ * Isola di avvio comune: tema salvato, registrazione del service worker,
+ * banner di aggiornamento. Nessun testo qui: il markup del banner sta nel
+ * layout, con le stringhe di i18n.
+ */
+import { percorso } from '../lib/percorsi';
+const percorsoSw = percorso('sw.js');
+const ambitoSw = percorso();
+---
+
+<script is:inline define:vars={{ percorsoSw, ambitoSw }}>
+  // Registrazione del service worker: solo se il browser lo supporta e solo
+  // su http(s) (in locale con `astro dev` non c'è nulla da mettere in cache).
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register(percorsoSw, { scope: ambitoSw })
+        .then((registrazione) => {
+          const banner = document.getElementById('banner-aggiornamento');
+          const ricarica = document.getElementById('banner-ricarica');
+          const ignora = document.getElementById('banner-ignora');
+          if (banner === null || ricarica === null || ignora === null) return;
+
+          const proponi = (attesa) => {
+            banner.hidden = false;
+            ricarica.onclick = () => {
+              attesa.postMessage({ tipo: 'attiva-subito' });
+            };
+            ignora.onclick = () => {
+              banner.hidden = true;
+            };
+          };
+
+          if (registrazione.waiting !== null) proponi(registrazione.waiting);
+          registrazione.addEventListener('updatefound', () => {
+            const inArrivo = registrazione.installing;
+            if (inArrivo === null) return;
+            inArrivo.addEventListener('statechange', () => {
+              if (inArrivo.state === 'installed' && navigator.serviceWorker.controller !== null) {
+                proponi(inArrivo);
+              }
+            });
+          });
+        })
+        .catch(() => {
+          /* Senza service worker l'app funziona, solo non offline. */
+        });
+
+      let ricaricato = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (ricaricato) return;
+        ricaricato = true;
+        location.reload();
+      });
+    });
+  }
+</script>
+
+<script>
+  // Tema salvato nelle impostazioni. Passa dall'archivio, non tocca
+  // direttamente lo storage: vedi `src/lib/archivio.ts`.
+  import { archivio } from '../lib/archivio';
+
+  const esito = await archivio.leggiStato<'auto' | 'chiaro' | 'scuro'>('tema', 'auto');
+  const tema = esito.ok ? esito.dato : 'auto';
+  if (tema !== 'auto') document.documentElement.dataset.tema = tema;
+</script>
