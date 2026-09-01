@@ -440,7 +440,12 @@ sono nella sezione `## Decisioni prese in autonomia` di quel file.
 Nessuna chiave, nessun account, nessun servizio da attivare: l'app non parla con nessuno.
 
 1. **Pubblica il repository su GitHub Pages** (una volta sola):
-   `Settings` → `Pages` → *Source: **GitHub Actions***.
+   - il codice è sul branch `claude/brambilla-astro-showcase-c213o0`: rinominalo in
+     `main` (`Settings` → `Branches`) o uniscilo con una pull request, perché il
+     workflow ascolta `main`/`master`;
+   - `Settings` → `Pages` → *Source: **GitHub Actions***;
+   - in alternativa, da qualunque branch: `Actions` → *Pubblica su GitHub Pages* →
+     **Run workflow**.
    Il workflow `.github/workflows/deploy.yml` fa il resto a ogni push su `main`: lancia
    `npm run check`, `npm test`, poi `npm run build` con `BASE_PATH=/<nome-repo>/`.
    Indirizzo finale: `https://albertomusiani1.github.io/Semagnaa/`.

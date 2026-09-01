@@ -1,12 +1,16 @@
 # Pubblicazione su GitHub Pages.
 #
-# Da fare una volta sola nel repository: Settings -> Pages -> Source: GitHub Actions.
+# Da fare una volta sola nel repository:
+#  1. Settings -> Pages -> Source: GitHub Actions.
+#  2. il branch principale deve chiamarsi main (o master): è quello che questo
+#     workflow ascolta. Da un altro branch si può comunque lanciare a mano con
+#     Actions -> Pubblica su GitHub Pages -> Run workflow.
 # Da quel momento ogni push sul branch principale ricostruisce e pubblica l'app.
 name: Pubblica su GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   workflow_dispatch:
 
 permissions:

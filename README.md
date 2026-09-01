@@ -132,8 +132,12 @@ dispositivo.
 
 Una volta sola:
 
-1. `Settings` → `Pages` → **Source: GitHub Actions**.
-2. Push sul branch `main`.
+1. Porta il codice sul branch principale: se il repository è ancora sul branch di
+   sviluppo, `Settings` → `Branches` → rinomina il branch in `main`, oppure aprine
+   una pull request e uniscila. Il workflow ascolta `main` (o `master`).
+2. `Settings` → `Pages` → **Source: GitHub Actions**.
+3. Push sul branch `main`. In alternativa, da un branch qualsiasi:
+   `Actions` → *Pubblica su GitHub Pages* → **Run workflow**.
 
 Il workflow lancia `npm run check`, `npm test`, poi `npm run build` con
 `BASE_PATH=/<nome-repo>/` e pubblica `dist/`. L'indirizzo finale è
