@@ -5,7 +5,6 @@ porzioni: 2
 tempoPreparazioneMin: 10
 tempoCotturaMin: 12
 difficolta: facile
-descrizione: Cena in venti minuti con quello che c'è in frigo.
 tags: [veloce, cena, vegetariano]
 preferita: false
 data: 2026-03-01

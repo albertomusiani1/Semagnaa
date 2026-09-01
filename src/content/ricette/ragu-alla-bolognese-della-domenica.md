@@ -5,7 +5,6 @@ porzioni: 6
 tempoPreparazioneMin: 25
 tempoCotturaMin: 160
 difficolta: media
-descrizione: Cottura lunga e lenta, il tempo fa quasi tutto. Se ne prepara sempre il doppio e la metà va in congelatore.
 tags: [domenica, congelabile, carne]
 preferita: false
 data: 2026-01-08

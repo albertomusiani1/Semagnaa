@@ -35,7 +35,6 @@ const ricette = defineCollection({
     tempoPreparazioneMin: z.number().int().nonnegative().max(1440),
     tempoCotturaMin: z.number().int().nonnegative().max(1440),
     difficolta: z.enum(DIFFICOLTA),
-    descrizione: z.string().min(1).max(LIMITI.descrizioneMax),
     tags: z.array(z.string().min(1).max(30)).max(12).default([]),
     preferita: z.boolean().default(false),
     data: z.coerce.date(),

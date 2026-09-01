@@ -11,7 +11,12 @@ Piano di lavoro operativo, memoria della sessione. Aggiornato a ogni fase comple
 - 2026-09-01 19:05 — Tutte le pagine e le isole client scritte; prima build verde.
 - 2026-09-01 19:10 — PWA completa (manifest generato, service worker + precache), `astro check` 0/0/0.
 - 2026-09-01 19:30 — **Tutte le 18 verifiche della Definizione di Fatto passano.** Vedi `RESULTS.md`.
-- 2026-09-01 19:35 — README, RESULTS.md, workflow GitHub Pages. Lavoro completo.
+- 2026-09-01 19:35 — README, RESULTS.md, workflow GitHub Pages. Prima versione completa.
+- 2026-09-01 20:55 — **Secondo giro** su richiesta: palette luminosa, schede senza immagine
+  né descrizione, pannello filtri richiudibile (categoria, difficoltà, durata, attese,
+  passaggi), cottura in ore e minuti, tag suggeriti, ingredienti con ricerca fra quelli già
+  usati, editor che aggiunge una voce alla volta, ordine automatico degli ingredienti.
+  Tutte le verifiche ripassate: 61 test, 47 passi funzionali, Lighthouse 98-99/100/100/100.
 
 ---
 
@@ -95,6 +100,21 @@ Piano di lavoro operativo, memoria della sessione. Aggiornato a ogni fase comple
 - [x] 16 flussi funzionali 27/27 / 17 offline su tutte le schermate / 18 base path `/repo/` e `/`
 - [x] `RESULTS.md` con l'output reale
 
+### Fase 12 — Secondo giro di modifiche (richieste dopo la prima consegna)
+- [x] Palette più luminosa (fondi chiari, verde vivo, accento caldo), contrasti verificati
+- [x] Schede ricetta senza immagine di anteprima e senza descrizione
+- [x] Campo `descrizione` rimosso dal modello dati, dallo schema, dalle 9 ricette seed
+- [x] `src/lib/filtri.ts` puro e testato: durata, attese, passaggi, soglie dichiarate
+- [x] Pannello filtri richiudibile con conteggio dei filtri attivi e azzeramento
+- [x] Cottura in ore e minuti nell'editor, con spiegazione di cosa sia la cottura
+- [x] Tag suggeriti (dai tag già usati + elenco di partenza) e tag scritti a mano
+- [x] Ingredienti con ricerca fra quelli già usati e riempimento automatico di unità e reparto
+- [x] Editor che aggiunge un ingrediente e un passaggio alla volta, con riordino e rimozione
+- [x] `src/lib/ordine.ts` puro e testato: ordine degli ingredienti come nei libri di cucina
+- [x] Gerarchia dei titoli corretta nell'elenco (schede in `h2` sotto l'`h1`)
+- [x] Icone di navigazione più leggibili (libro aperto, cursori) e imbuto per i filtri
+- [x] Verifiche ripassate e `RESULTS.md` aggiornato
+
 ---
 
 ## Decisioni prese in autonomia
@@ -173,6 +193,47 @@ Piano di lavoro operativo, memoria della sessione. Aggiornato a ogni fase comple
     andavano a capo dentro pulsanti da 56 px: illeggibili proprio nel momento in cui
     l'app va guardata di sfuggita.
 
+### Secondo giro
+
+13. **Il campo `descrizione` è stato rimosso dal modello, non solo nascosto.**
+    Toglierlo dalle schede e lasciarlo nei dati avrebbe significato un campo obbligatorio
+    nello schema che nessuno legge e nessuno può più compilare. È uscito da tipi, schema
+    Zod, ricette seed, editor e ricerca. Le ricette già salvate che lo contengono non si
+    rompono: la validazione tiene solo i campi che conosce.
+    *Scartato*: renderlo opzionale e tenerlo per un uso futuro (campo morto).
+
+14. **L'attesa che conta per i filtri è `max(timer del passaggio, tempo di cottura)`.**
+    Una ricetta può scrivere "cottura 160 minuti" senza mettere un timer sul passaggio:
+    resta una ricetta da mettere su e lasciar stare, e il filtro deve trovarla.
+    *Scartato*: guardare solo i timer dei passaggi (il ragù sarebbe finito fra le ricette
+    "senza attese").
+
+15. **Filtri come stato della pagina, non nell'URL.**
+    Solo `?categoria=` resta leggibile all'ingresso, perché è un link che può arrivare da
+    fuori: in quel caso il pannello si apre da solo, così si vede che un filtro è attivo.
+    *Scartato*: sincronizzare tutti i filtri nell'URL — utile per condividere una vista,
+    inutile su un'app personale, e in cambio ricarica la pagina a ogni tocco.
+
+16. **Le voci dei filtri con lo stesso nome usano `nome[]`** (`difficolta[]`, `durata[]`).
+    È la forma che i validatori HTML riconoscono per i gruppi di checkbox; senza le
+    parentesi `html-validate` segnala nomi duplicati e la verifica 8 diventa rossa.
+
+17. **L'ordine automatico degli ingredienti scatta solo alla creazione.**
+    Se scattasse a ogni salvataggio, cancellerebbe ogni riordino fatto a mano. Per
+    riapplicarlo quando serve c'è il bottone *Ordina come nei libri di cucina*.
+    *Scartato*: ordinare sempre (l'utente perde il controllo) e non ordinare mai (la
+    richiesta era proprio quella).
+
+18. **Le conserve di verdura sono trattate come verdure** nell'ordine degli ingredienti
+    ("pomodori pelati", "passata", "olive"): stanno nel reparto dispensa, ma in un elenco di
+    ingredienti si leggono come verdure. È una lista di parole chiave in `ordine.ts`, non
+    un vocabolario: sbaglierà su qualche caso, e si corregge aggiungendo una parola.
+
+19. **Suggerimenti degli ingredienti con `<datalist>`, non con un menu costruito a mano.**
+    Il campo resta un normale campo di testo — si scrive un ingrediente nuovo senza
+    passaggi in più — e il browser ci mette sopra ricerca, tastiera e accessibilità.
+    *Scartato*: una tendina custom (più codice, peggiore su telefono).
+
 ---
 
 ## Versioni installate
@@ -206,7 +267,14 @@ Nessuno che blocchi l'uso dell'app. Limiti noti e voluti, documentati nel README
    un vocabolario italiano, sproporzionato qui.
 3. **Screen Wake Lock non esiste su iOS**: lo schermo si può spegnere durante la cottura.
    I timer restano corretti perché calcolati su timestamp assoluti.
-4. **Nessuna notifica di sistema**: se l'app è chiusa, alla scadenza non suona niente; alla
+4. **Foto e video nei passaggi: non fatti, per scelta ragionata.** Servirebbero IndexedDB al
+   posto di `localStorage` (il limite di 5 MB non regge nemmeno una foto di telefono),
+   miniature generate su dispositivo, gestione della quota e un'esportazione diversa dal
+   JSON. È un lavoro fattibile ma è un altro capitolo: vedi la nota in fondo a `RESULTS.md`.
+5. **Nessuna notifica di sistema**: se l'app è chiusa, alla scadenza non suona niente; alla
    riapertura il timer risulta già scaduto. Servirebbe il permesso notifiche e un push
    server, che l'app per scelta non ha.
-5. **Sfarfallio possibile solo con tema forzato** contrario a quello di sistema (decisione 5).
+6. **Sfarfallio possibile solo con tema forzato** contrario a quello di sistema (decisione 5).
+7. **L'ordine automatico degli ingredienti è un'euristica** (decisione 18): su un ingrediente
+   inusuale può sbagliare gruppo. Si sistema a mano nell'editor o aggiungendo una parola
+   chiave in `ordine.ts`.

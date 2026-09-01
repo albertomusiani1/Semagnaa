@@ -5,7 +5,6 @@ porzioni: 4
 tempoPreparazioneMin: 10
 tempoCotturaMin: 0
 difficolta: facile
-descrizione: Quattro ingredienti, dieci minuti.
 tags: [crudo, inverno, vegano]
 preferita: false
 data: 2026-01-30

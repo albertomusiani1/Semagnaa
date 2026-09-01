@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Icona from '../../components/Icona.astro';
 import { T } from '../../i18n';
-import { CATEGORIE, DIFFICOLTA } from '../../lib/tipi';
+import { CATEGORIE, DIFFICOLTA, REPARTI, UNITA } from '../../lib/tipi';
 ---
 
 <Base titolo={T.editor.titoloNuova}>
@@ -11,6 +11,7 @@ import { CATEGORIE, DIFFICOLTA } from '../../lib/tipi';
   <p class="messaggio" id="messaggio" role="status" hidden></p>
 
   <form id="modulo" novalidate>
+    <!-- 1. Informazioni ------------------------------------------------ -->
     <fieldset class="gruppo-campi">
       <legend><h2>{T.editor.sezioneBase}</h2></legend>
 
@@ -33,34 +34,29 @@ import { CATEGORIE, DIFFICOLTA } from '../../lib/tipi';
             {DIFFICOLTA.map((d) => <option value={d}>{T.difficolta[d]}</option>)}
           </select>
         </div>
-      </div>
-
-      <div class="riga-campi">
         <div class="campo">
           <label for="porzioni">{T.editor.campoPorzioni}</label>
           <input type="number" id="porzioni" name="porzioni" min="1" max="50" step="1" value="4" />
         </div>
-        <div class="campo">
-          <label for="preparazione">{T.editor.campoPreparazione}</label>
-          <input type="number" id="preparazione" name="preparazione" min="0" max="1440" step="1" value="10" />
-        </div>
-        <div class="campo">
-          <label for="cottura">{T.editor.campoCottura}</label>
-          <input type="number" id="cottura" name="cottura" min="0" max="1440" step="1" value="0" />
-        </div>
       </div>
 
       <div class="campo">
-        <label for="descrizione">{T.editor.campoDescrizione}</label>
-        <textarea id="descrizione" name="descrizione" maxlength="200"></textarea>
-        <span class="campo__aiuto">{T.editor.campoDescrizioneAiuto}</span>
+        <label for="preparazione">{T.editor.campoPreparazione}</label>
+        <input type="number" id="preparazione" name="preparazione" min="0" max="1440" step="1" value="10" />
+        <span class="campo__aiuto">{T.editor.campoPreparazioneAiuto}</span>
       </div>
 
-      <div class="campo">
-        <label for="tags">{T.editor.campoTags}</label>
-        <input type="text" id="tags" name="tags" autocomplete="off" />
-        <span class="campo__aiuto">{T.editor.campoTagsAiuto}</span>
+      <div class="riga-campi">
+        <div class="campo">
+          <label for="cottura-ore">{T.editor.campoCotturaOre}</label>
+          <input type="number" id="cottura-ore" name="cottura-ore" min="0" max="24" step="1" value="0" />
+        </div>
+        <div class="campo">
+          <label for="cottura-minuti">{T.editor.campoCotturaMinuti}</label>
+          <input type="number" id="cottura-minuti" name="cottura-minuti" min="0" max="59" step="1" value="0" />
+        </div>
       </div>
+      <p class="campo__aiuto">{T.editor.campoCotturaAiuto}</p>
 
       <div class="interruttore">
         <input type="checkbox" id="preferita" name="preferita" />
@@ -68,24 +64,110 @@ import { CATEGORIE, DIFFICOLTA } from '../../lib/tipi';
       </div>
     </fieldset>
 
+    <!-- 2. Tag ---------------------------------------------------------- -->
+    <fieldset class="gruppo-campi">
+      <legend><h2>{T.editor.sezioneTag}</h2></legend>
+
+      <p class="campo__etichetta">{T.editor.tagScelti}</p>
+      <ul class="tag-scelti" id="tag-scelti"></ul>
+      <p class="campo__aiuto" id="tag-vuoto">{T.editor.nessunTag}</p>
+
+      <p class="campo__etichetta">{T.editor.tagSuggeriti}</p>
+      <ul class="filtri" id="tag-suggeriti"></ul>
+
+      <div class="campo spazio-sopra">
+        <label for="nuovo-tag">{T.editor.nuovoTag}</label>
+        <div class="voce__riga">
+          <input type="text" id="nuovo-tag" maxlength="30" autocomplete="off" />
+          <button class="bottone bottone--secondario" type="button" id="aggiungi-tag">
+            {T.editor.aggiungiTag}
+          </button>
+        </div>
+      </div>
+    </fieldset>
+
+    <!-- 3. Ingredienti -------------------------------------------------- -->
     <fieldset class="gruppo-campi">
       <legend><h2>{T.editor.sezioneIngredienti}</h2></legend>
-      <ul class="elenco-scelta" id="ingredienti"></ul>
-      <button class="bottone bottone--secondario" type="button" id="aggiungi-ingrediente">
-        <Icona nome="piu" dimensione={20} />
-        {T.editor.aggiungiIngrediente}
-      </button>
+
+      <p class="campo__etichetta">{T.editor.elencoIngredienti}</p>
+      <ul class="elenco-voci" id="ingredienti"></ul>
+      <p class="campo__aiuto" id="ingredienti-vuoto">{T.editor.nessunIngrediente}</p>
+      <button class="bottone bottone--secondario" type="button" id="ordina-ingredienti">{T.editor.ordinaOra}</button>
+      <p class="campo__aiuto">{T.editor.ordineAutomatico}</p>
+
+      <div class="riquadro-aggiungi">
+        <p class="campo__etichetta">{T.editor.nuovoIngrediente}</p>
+        <div class="campo">
+          <label for="ing-nome">{T.editor.campoNomeIngrediente}</label>
+          <input type="text" id="ing-nome" list="ingredienti-noti" autocomplete="off" maxlength="80" />
+          <datalist id="ingredienti-noti"></datalist>
+          <span class="campo__aiuto">{T.editor.campoNomeIngredienteAiuto}</span>
+        </div>
+        <div class="riga-campi">
+          <div class="campo">
+            <label for="ing-quantita">{T.editor.campoQuantita}</label>
+            <input type="text" inputmode="decimal" id="ing-quantita" autocomplete="off" />
+          </div>
+          <div class="campo">
+            <label for="ing-unita">{T.editor.campoUnita}</label>
+            <select id="ing-unita">
+              <option value="">{T.editor.senzaUnita}</option>
+              {UNITA.map((u) => <option value={u}>{T.unita[u]}</option>)}
+            </select>
+          </div>
+          <div class="campo">
+            <label for="ing-reparto">{T.editor.campoReparto}</label>
+            <select id="ing-reparto">
+              {REPARTI.map((r) => <option value={r} selected={r === 'dispensa'}>{T.reparti[r]}</option>)}
+            </select>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="ing-note">{T.editor.campoNoteIngrediente}</label>
+          <input type="text" id="ing-note" maxlength="200" autocomplete="off" />
+        </div>
+        <button class="bottone" type="button" id="aggiungi-ingrediente">
+          <Icona nome="piu" dimensione={20} />
+          {T.editor.aggiungiIngrediente}
+        </button>
+      </div>
     </fieldset>
 
+    <!-- 4. Passaggi ----------------------------------------------------- -->
     <fieldset class="gruppo-campi">
       <legend><h2>{T.editor.sezionePassaggi}</h2></legend>
-      <ol class="elenco-scelta" id="passaggi"></ol>
-      <button class="bottone bottone--secondario" type="button" id="aggiungi-passaggio">
-        <Icona nome="piu" dimensione={20} />
-        {T.editor.aggiungiPassaggio}
-      </button>
+
+      <p class="campo__etichetta">{T.editor.elencoPassaggi}</p>
+      <ol class="elenco-voci elenco-voci--numerato" id="passaggi"></ol>
+      <p class="campo__aiuto" id="passaggi-vuoto">{T.editor.nessunPassaggio}</p>
+
+      <div class="riquadro-aggiungi">
+        <p class="campo__etichetta">{T.editor.nuovoPassaggio}</p>
+        <div class="campo">
+          <label for="pas-testo">{T.editor.campoTestoPassaggio}</label>
+          <textarea id="pas-testo" maxlength="600"></textarea>
+        </div>
+        <div class="riga-campi">
+          <div class="campo">
+            <label for="pas-timer">{T.editor.campoTimer}</label>
+            <input type="number" id="pas-timer" min="0" max="2880" step="1" />
+            <span class="campo__aiuto">{T.editor.campoTimerAiuto}</span>
+          </div>
+          <div class="campo">
+            <label for="pas-timer-nome">{T.editor.campoTimerNome}</label>
+            <input type="text" id="pas-timer-nome" maxlength="60" autocomplete="off" />
+            <span class="campo__aiuto">{T.editor.campoTimerNomeAiuto}</span>
+          </div>
+        </div>
+        <button class="bottone" type="button" id="aggiungi-passaggio">
+          <Icona nome="piu" dimensione={20} />
+          {T.editor.aggiungiPassaggio}
+        </button>
+      </div>
     </fieldset>
 
+    <!-- 5. Note --------------------------------------------------------- -->
     <fieldset class="gruppo-campi">
       <legend><h2>{T.ricetta.note}</h2></legend>
       <div class="campo">
@@ -109,16 +191,32 @@ import { CATEGORIE, DIFFICOLTA } from '../../lib/tipi';
   import { T, interpola } from '../../i18n';
   import { caricaRicette } from '../../lib/seed';
   import { archivio } from '../../lib/archivio';
-  import { annuncia, el, trova, tutti } from '../../lib/dom';
+  import { annuncia, el, svuota, trova } from '../../lib/dom';
   import { PERCORSI, parametro, urlRicetta } from '../../lib/percorsi';
   import { validaRicetta } from '../../lib/validazione';
-  import { REPARTI, UNITA, type Ingrediente, type Passaggio, type Ricetta } from '../../lib/tipi';
+  import { ordinaIngredienti } from '../../lib/ordine';
+  import { quantitaLeggibile } from '../../lib/viste';
+  import type { Ingrediente, Passaggio, Reparto, Ricetta, Unita } from '../../lib/tipi';
+
+  /** Tag proposti quando l'archivio è ancora povero di etichette sue. */
+  const TAG_BASE = [
+    'veloce',
+    'vegetariano',
+    'vegano',
+    'forno',
+    'senza cottura',
+    'cena',
+    'domenica',
+    'congelabile',
+    'base',
+    'dolce',
+    'ospiti',
+    'bambini',
+  ];
 
   const id = parametro('id');
   const messaggio = trova('#messaggio');
   const modulo = trova<HTMLFormElement>('#modulo');
-  const contenitoreIngredienti = trova('#ingredienti');
-  const contenitorePassaggi = trova('#passaggi');
 
   const ricette = await caricaRicette();
   const esistente: Ricetta | undefined = id === null ? undefined : ricette.find((r) => r.id === id);
@@ -129,206 +227,275 @@ import { CATEGORIE, DIFFICOLTA } from '../../lib/tipi';
   }
   trova<HTMLAnchorElement>('#annulla').href = esistente === undefined ? PERCORSI.ricette : urlRicetta(esistente.id);
 
-  function selezione(
-    nome: string,
-    valori: readonly string[],
-    etichette: Readonly<Record<string, string>>,
-    scelto: string | undefined,
-    etichettaCampo: string,
-  ): HTMLElement {
-    const controllo = el('select', { name: nome, 'aria-label': etichettaCampo });
-    for (const valore of valori) {
-      const opzione = el('option', { value: valore }, [etichette[valore] ?? valore]);
-      if (valore === scelto) opzione.setAttribute('selected', '');
-      controllo.append(opzione);
+  // Stato dell'editor: due elenchi che crescono un pezzo alla volta.
+  const ingredienti: Ingrediente[] = esistente === undefined ? [] : esistente.ingredienti.map((i) => ({ ...i }));
+  const passaggi: Passaggio[] = esistente === undefined ? [] : esistente.passaggi.map((p) => ({ ...p }));
+  const tag: string[] = esistente === undefined ? [] : [...esistente.tags];
+
+  // --- ingredienti già usati: suggerimenti e riempimento automatico -------
+  interface IngredienteNoto {
+    nome: string;
+    unita?: Unita;
+    reparto: Reparto;
+  }
+  const noti = new Map<string, IngredienteNoto>();
+  for (const ricetta of ricette) {
+    for (const ingrediente of ricetta.ingredienti) {
+      const chiave = ingrediente.nome.trim().toLowerCase();
+      if (chiave === '' || noti.has(chiave)) continue;
+      const voce: IngredienteNoto = { nome: ingrediente.nome.trim(), reparto: ingrediente.reparto };
+      if (ingrediente.unita !== undefined) voce.unita = ingrediente.unita;
+      noti.set(chiave, voce);
     }
-    return controllo;
   }
 
-  function rigaIngrediente(ingrediente?: Ingrediente): HTMLLIElement {
-    const riga = el('li', { class: 'voce', 'data-riga': 'ingrediente' }, [
-      el('div', { class: 'riga-campi' }, [
-        el('div', { class: 'campo' }, [
-          el('span', { class: 'campo__etichetta' }, [T.editor.campoNomeIngrediente]),
-          el('input', {
-            type: 'text',
-            name: 'nome',
-            value: ingrediente?.nome ?? '',
-            maxlength: 80,
-            'aria-label': T.editor.campoNomeIngrediente,
-          }),
-        ]),
-        el('div', { class: 'campo' }, [
-          el('span', { class: 'campo__etichetta' }, [T.editor.campoQuantita]),
-          el('input', {
-            type: 'text',
-            inputmode: 'decimal',
-            name: 'quantita',
-            value: ingrediente?.quantita === undefined ? '' : String(ingrediente.quantita),
-            'aria-label': T.editor.campoQuantita,
-          }),
-        ]),
-        el('div', { class: 'campo' }, [
-          el('span', { class: 'campo__etichetta' }, [T.editor.campoUnita]),
-          selezione('unita', ['', ...UNITA], { '': T.editor.senzaUnita, ...T.unita }, ingrediente?.unita, T.editor.campoUnita),
-        ]),
-        el('div', { class: 'campo' }, [
-          el('span', { class: 'campo__etichetta' }, [T.editor.campoReparto]),
-          selezione('reparto', REPARTI, T.reparti, ingrediente?.reparto ?? 'dispensa', T.editor.campoReparto),
-        ]),
-        el('div', { class: 'campo' }, [
-          el('span', { class: 'campo__etichetta' }, [T.editor.campoNoteIngrediente]),
-          el('input', {
-            type: 'text',
-            name: 'note',
-            value: ingrediente?.note ?? '',
-            maxlength: 200,
-            'aria-label': T.editor.campoNoteIngrediente,
-          }),
-        ]),
-      ]),
-      bottoniRiga(T.editor.rimuoviIngrediente),
-    ]) as HTMLLIElement;
-    return riga;
+  const listaNoti = trova('#ingredienti-noti');
+  for (const voce of [...noti.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'it'))) {
+    listaNoti.append(el('option', { value: voce.nome }));
   }
 
-  function rigaPassaggio(passaggio?: Passaggio): HTMLLIElement {
-    return el('li', { class: 'voce', 'data-riga': 'passaggio' }, [
-      el('div', { class: 'campo' }, [
-        el('span', { class: 'campo__etichetta' }, [T.editor.campoTestoPassaggio]),
-        el('textarea', { name: 'testo', maxlength: 600, 'aria-label': T.editor.campoTestoPassaggio }, [
-          passaggio?.testo ?? '',
-        ]),
-      ]),
-      el('div', { class: 'riga-campi' }, [
-        el('div', { class: 'campo' }, [
-          el('span', { class: 'campo__etichetta' }, [T.editor.campoTimer]),
-          el('input', {
-            type: 'number',
-            min: 0,
-            max: 2880,
-            step: 1,
-            name: 'timer',
-            value: passaggio?.timerSecondi === undefined ? '' : String(Math.round(passaggio.timerSecondi / 60)),
-            'aria-label': T.editor.campoTimer,
-          }),
-          el('span', { class: 'campo__aiuto' }, [T.editor.campoTimerAiuto]),
-        ]),
-        el('div', { class: 'campo' }, [
-          el('span', { class: 'campo__etichetta' }, [T.editor.campoTimerEtichetta]),
-          el('input', {
-            type: 'text',
-            name: 'timerEtichetta',
-            value: passaggio?.timerEtichetta ?? '',
-            maxlength: 60,
-            'aria-label': T.editor.campoTimerEtichetta,
-          }),
-        ]),
-      ]),
-      bottoniRiga(T.editor.rimuoviPassaggio),
-    ]) as HTMLLIElement;
-  }
+  const campoNome = trova<HTMLInputElement>('#ing-nome');
+  const campoQuantita = trova<HTMLInputElement>('#ing-quantita');
+  const campoUnita = trova<HTMLSelectElement>('#ing-unita');
+  const campoReparto = trova<HTMLSelectElement>('#ing-reparto');
+  const campoNoteIngrediente = trova<HTMLInputElement>('#ing-note');
 
-  function bottoniRiga(etichettaRimuovi: string): HTMLElement {
-    return el('div', { class: 'gruppo-bottoni' }, [
-      el('button', { type: 'button', class: 'bottone bottone--secondario', 'data-azione': 'su' }, [T.azioni.su]),
-      el('button', { type: 'button', class: 'bottone bottone--secondario', 'data-azione': 'giu' }, [T.azioni.giu]),
-      el('button', { type: 'button', class: 'bottone bottone--pericolo', 'data-azione': 'rimuovi' }, [
-        etichettaRimuovi,
-      ]),
-    ]);
-  }
-
-  function gestisciRighe(contenitore: HTMLElement): void {
-    contenitore.addEventListener('click', (evento) => {
-      const bersaglio = evento.target;
-      if (!(bersaglio instanceof HTMLElement)) return;
-      const azione = bersaglio.dataset['azione'];
-      if (azione === undefined) return;
-      const riga = bersaglio.closest('li');
-      if (riga === null) return;
-      if (azione === 'rimuovi') {
-        riga.remove();
-      } else if (azione === 'su' && riga.previousElementSibling !== null) {
-        riga.previousElementSibling.before(riga);
-      } else if (azione === 'giu' && riga.nextElementSibling !== null) {
-        riga.nextElementSibling.after(riga);
-      }
-      numeraRighe();
-    });
-  }
-
-  function numeraRighe(): void {
-    tutti('li[data-riga="passaggio"]', contenitorePassaggi).forEach((riga, indice) => {
-      riga.setAttribute('aria-label', interpola(T.editor.numeroPassaggio, { n: indice + 1 }));
-    });
-    tutti('li[data-riga="ingrediente"]', contenitoreIngredienti).forEach((riga, indice) => {
-      riga.setAttribute('aria-label', interpola(T.editor.numeroIngrediente, { n: indice + 1 }));
-    });
-  }
-
-  gestisciRighe(contenitoreIngredienti);
-  gestisciRighe(contenitorePassaggi);
-
-  trova('#aggiungi-ingrediente').addEventListener('click', () => {
-    contenitoreIngredienti.append(rigaIngrediente());
-    numeraRighe();
+  // Scegliendo un ingrediente già usato, unità e reparto si compilano da soli.
+  campoNome.addEventListener('change', () => {
+    const voce = noti.get(campoNome.value.trim().toLowerCase());
+    if (voce === undefined) return;
+    campoReparto.value = voce.reparto;
+    if (voce.unita !== undefined) campoUnita.value = voce.unita;
   });
+
+  // --- tag ----------------------------------------------------------------
+  const contenitoreTag = trova('#tag-scelti');
+  const contenitoreSuggeriti = trova('#tag-suggeriti');
+  const campoNuovoTag = trova<HTMLInputElement>('#nuovo-tag');
+
+  function tagSuggeriti(): string[] {
+    const dalleRicette = new Set<string>();
+    for (const ricetta of ricette) for (const etichetta of ricetta.tags) dalleRicette.add(etichetta);
+    for (const etichetta of TAG_BASE) dalleRicette.add(etichetta);
+    return [...dalleRicette].sort((a, b) => a.localeCompare(b, 'it')).filter((t) => !tag.includes(t));
+  }
+
+  function disegnaTag(): void {
+    svuota(contenitoreTag);
+    for (const etichetta of tag) {
+      const via = el('button', { type: 'button', 'aria-label': interpola(T.editor.rimuoviTag, { tag: etichetta }) }, ['×']);
+      via.addEventListener('click', () => {
+        tag.splice(tag.indexOf(etichetta), 1);
+        disegnaTag();
+      });
+      contenitoreTag.append(el('li', { class: 'tag-scelto' }, [etichetta, via]));
+    }
+    trova('#tag-vuoto').hidden = tag.length > 0;
+
+    svuota(contenitoreSuggeriti);
+    for (const etichetta of tagSuggeriti().slice(0, 14)) {
+      const bottone = el('button', { type: 'button', class: 'filtri__voce' }, [etichetta]);
+      bottone.addEventListener('click', () => {
+        tag.push(etichetta);
+        disegnaTag();
+      });
+      contenitoreSuggeriti.append(el('li', {}, [bottone]));
+    }
+  }
+
+  function aggiungiTag(): void {
+    const nuovo = campoNuovoTag.value.trim().slice(0, 30);
+    if (nuovo === '') return;
+    if (tag.includes(nuovo)) {
+      annuncia(messaggio, T.errori.tagDuplicato, 'errore');
+      return;
+    }
+    tag.push(nuovo);
+    campoNuovoTag.value = '';
+    annuncia(messaggio, '');
+    disegnaTag();
+  }
+
+  trova('#aggiungi-tag').addEventListener('click', aggiungiTag);
+  campoNuovoTag.addEventListener('keydown', (evento) => {
+    if (evento.key !== 'Enter') return;
+    evento.preventDefault();
+    aggiungiTag();
+  });
+
+  // --- elenchi con riordino e rimozione ----------------------------------
+  function bottoniOrdine(indice: number, quanti: number, sposta: (da: number, a: number) => void, togli: (i: number) => void, etichettaTogli: string): HTMLElement {
+    const su = el('button', { type: 'button', class: 'bottone bottone--secondario', 'aria-label': T.azioni.su, disabled: indice === 0 }, ['↑']);
+    const giu = el('button', { type: 'button', class: 'bottone bottone--secondario', 'aria-label': T.azioni.giu, disabled: indice === quanti - 1 }, ['↓']);
+    const via = el('button', { type: 'button', class: 'bottone bottone--pericolo', 'aria-label': etichettaTogli }, ['×']);
+    su.addEventListener('click', () => sposta(indice, indice - 1));
+    giu.addEventListener('click', () => sposta(indice, indice + 1));
+    via.addEventListener('click', () => togli(indice));
+    return el('div', { class: 'elenco-voci__azioni' }, [su, giu, via]);
+  }
+
+  function spostaIn<T>(elenco: T[], da: number, a: number): void {
+    if (a < 0 || a >= elenco.length) return;
+    const voce = elenco[da];
+    if (voce === undefined) return;
+    elenco.splice(da, 1);
+    elenco.splice(a, 0, voce);
+  }
+
+  const contenitoreIngredienti = trova('#ingredienti');
+  function disegnaIngredienti(): void {
+    svuota(contenitoreIngredienti);
+    ingredienti.forEach((ingrediente, indice) => {
+      const quantita = quantitaLeggibile(ingrediente);
+      contenitoreIngredienti.append(
+        el('li', {}, [
+          el('div', { class: 'elenco-voci__testo' }, [
+            el('div', { class: 'voce__nome' }, [quantita === '' ? ingrediente.nome : `${ingrediente.nome} — ${quantita}`]),
+            el('div', { class: 'voce__dettaglio' }, [
+              T.reparti[ingrediente.reparto],
+              ingrediente.note === undefined ? null : ` · ${ingrediente.note}`,
+            ]),
+          ]),
+          bottoniOrdine(
+            indice,
+            ingredienti.length,
+            (da, a) => {
+              spostaIn(ingredienti, da, a);
+              disegnaIngredienti();
+            },
+            (i) => {
+              ingredienti.splice(i, 1);
+              disegnaIngredienti();
+            },
+            T.editor.rimuoviIngrediente,
+          ),
+        ]),
+      );
+    });
+    trova('#ingredienti-vuoto').hidden = ingredienti.length > 0;
+    trova('#ordina-ingredienti').hidden = ingredienti.length < 2;
+  }
+
+  const contenitorePassaggi = trova('#passaggi');
+  function disegnaPassaggi(): void {
+    svuota(contenitorePassaggi);
+    passaggi.forEach((passaggio, indice) => {
+      contenitorePassaggi.append(
+        el('li', {}, [
+          el('div', { class: 'elenco-voci__testo' }, [
+            el('div', {}, [passaggio.testo]),
+            passaggio.timerSecondi === undefined
+              ? null
+              : el('div', { class: 'voce__dettaglio' }, [
+                  `${T.ricetta.conTimer}: ${Math.round(passaggio.timerSecondi / 60)} ${T.ricetta.minuti}`,
+                  passaggio.timerEtichetta === undefined ? null : ` · ${passaggio.timerEtichetta}`,
+                ]),
+          ]),
+          bottoniOrdine(
+            indice,
+            passaggi.length,
+            (da, a) => {
+              spostaIn(passaggi, da, a);
+              disegnaPassaggi();
+            },
+            (i) => {
+              passaggi.splice(i, 1);
+              disegnaPassaggi();
+            },
+            T.editor.rimuoviPassaggio,
+          ),
+        ]),
+      );
+    });
+    trova('#passaggi-vuoto').hidden = passaggi.length > 0;
+  }
+
+  trova('#ordina-ingredienti').addEventListener('click', () => {
+    const ordinati = ordinaIngredienti(ingredienti);
+    ingredienti.length = 0;
+    ingredienti.push(...ordinati);
+    disegnaIngredienti();
+  });
+
+  // --- aggiunta di un ingrediente alla volta -----------------------------
+  trova('#aggiungi-ingrediente').addEventListener('click', () => {
+    const nome = campoNome.value.trim();
+    if (nome === '') {
+      annuncia(messaggio, T.errori.ingredienteSenzaNome, 'errore');
+      campoNome.focus();
+      return;
+    }
+    const ingrediente: Ingrediente = { nome, reparto: campoReparto.value as Reparto };
+    if (campoUnita.value !== '') ingrediente.unita = campoUnita.value as Unita;
+    const quantita = Number(campoQuantita.value.replace(',', '.'));
+    if (campoQuantita.value.trim() !== '' && Number.isFinite(quantita) && quantita > 0 && campoUnita.value !== 'qb') {
+      ingrediente.quantita = quantita;
+    }
+    const nota = campoNoteIngrediente.value.trim();
+    if (nota !== '') ingrediente.note = nota;
+
+    ingredienti.push(ingrediente);
+    disegnaIngredienti();
+
+    campoNome.value = '';
+    campoQuantita.value = '';
+    campoNoteIngrediente.value = '';
+    annuncia(messaggio, T.editor.ingredienteAggiunto);
+    campoNome.focus();
+  });
+
+  // --- aggiunta di un passaggio alla volta -------------------------------
+  const campoTesto = trova<HTMLTextAreaElement>('#pas-testo');
+  const campoTimer = trova<HTMLInputElement>('#pas-timer');
+  const campoTimerNome = trova<HTMLInputElement>('#pas-timer-nome');
+
   trova('#aggiungi-passaggio').addEventListener('click', () => {
-    contenitorePassaggi.append(rigaPassaggio());
-    numeraRighe();
+    const testo = campoTesto.value.trim();
+    if (testo === '') {
+      annuncia(messaggio, T.errori.passaggioSenzaTesto, 'errore');
+      campoTesto.focus();
+      return;
+    }
+    const passaggio: Passaggio = { testo };
+    const minuti = Number(campoTimer.value);
+    if (campoTimer.value.trim() !== '' && Number.isFinite(minuti) && minuti > 0) {
+      passaggio.timerSecondi = Math.round(minuti * 60);
+      const nome = campoTimerNome.value.trim();
+      if (nome !== '') passaggio.timerEtichetta = nome;
+    }
+    passaggi.push(passaggio);
+    disegnaPassaggi();
+
+    campoTesto.value = '';
+    campoTimer.value = '';
+    campoTimerNome.value = '';
+    annuncia(messaggio, T.editor.passaggioAggiunto);
+    campoTesto.focus();
   });
 
   // --- riempimento iniziale ---------------------------------------------
-  if (esistente === undefined) {
-    contenitoreIngredienti.append(rigaIngrediente(), rigaIngrediente());
-    contenitorePassaggi.append(rigaPassaggio());
-  } else {
+  if (esistente !== undefined) {
     trova<HTMLInputElement>('#titolo').value = esistente.titolo;
     trova<HTMLSelectElement>('#categoria').value = esistente.categoria;
     trova<HTMLSelectElement>('#difficolta').value = esistente.difficolta;
     trova<HTMLInputElement>('#porzioni').value = String(esistente.porzioni);
     trova<HTMLInputElement>('#preparazione').value = String(esistente.tempoPreparazioneMin);
-    trova<HTMLInputElement>('#cottura').value = String(esistente.tempoCotturaMin);
-    trova<HTMLTextAreaElement>('#descrizione').value = esistente.descrizione;
-    trova<HTMLInputElement>('#tags').value = esistente.tags.join(', ');
+    trova<HTMLInputElement>('#cottura-ore').value = String(Math.floor(esistente.tempoCotturaMin / 60));
+    trova<HTMLInputElement>('#cottura-minuti').value = String(esistente.tempoCotturaMin % 60);
     trova<HTMLInputElement>('#preferita').checked = esistente.preferita;
     trova<HTMLTextAreaElement>('#note').value = esistente.note ?? '';
     trova<HTMLInputElement>('#fonte').value = esistente.fonte ?? '';
-    for (const ingrediente of esistente.ingredienti) contenitoreIngredienti.append(rigaIngrediente(ingrediente));
-    for (const passaggio of esistente.passaggi) contenitorePassaggi.append(rigaPassaggio(passaggio));
   }
-  numeraRighe();
+  disegnaTag();
+  disegnaIngredienti();
+  disegnaPassaggi();
 
   // --- salvataggio -------------------------------------------------------
-  function valore(riga: HTMLElement, nome: string): string {
-    const campo = riga.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(`[name="${nome}"]`);
-    return campo === null ? '' : campo.value.trim();
-  }
-
   modulo.addEventListener('submit', async (evento) => {
     evento.preventDefault();
 
-    const ingredienti = tutti('li[data-riga="ingrediente"]', contenitoreIngredienti)
-      .map((riga) => ({
-        nome: valore(riga, 'nome'),
-        quantita: valore(riga, 'quantita'),
-        unita: valore(riga, 'unita'),
-        reparto: valore(riga, 'reparto'),
-        note: valore(riga, 'note'),
-      }))
-      .filter((voce) => voce.nome !== '');
-
-    const passaggi = tutti('li[data-riga="passaggio"]', contenitorePassaggi)
-      .map((riga) => {
-        const minuti = valore(riga, 'timer');
-        return {
-          testo: valore(riga, 'testo'),
-          timerSecondi: minuti === '' || Number(minuti) <= 0 ? '' : Math.round(Number(minuti) * 60),
-          timerEtichetta: valore(riga, 'timerEtichetta'),
-        };
-      })
-      .filter((voce) => voce.testo !== '');
+    const ore = Number(trova<HTMLInputElement>('#cottura-ore').value) || 0;
+    const minutiCottura = Number(trova<HTMLInputElement>('#cottura-minuti').value) || 0;
 
     const grezza: Record<string, unknown> = {
       id: esistente?.id,
@@ -337,13 +504,15 @@ import { CATEGORIE, DIFFICOLTA } from '../../lib/tipi';
       difficolta: trova<HTMLSelectElement>('#difficolta').value,
       porzioni: trova<HTMLInputElement>('#porzioni').value,
       tempoPreparazioneMin: trova<HTMLInputElement>('#preparazione').value,
-      tempoCotturaMin: trova<HTMLInputElement>('#cottura').value,
-      descrizione: trova<HTMLTextAreaElement>('#descrizione').value,
-      tags: trova<HTMLInputElement>('#tags').value.split(','),
+      tempoCotturaMin: ore * 60 + minutiCottura,
+      tags: tag,
       preferita: trova<HTMLInputElement>('#preferita').checked,
       note: trova<HTMLTextAreaElement>('#note').value,
       fonte: trova<HTMLInputElement>('#fonte').value,
-      ingredienti,
+      // Ricetta nuova: gli ingredienti si mettono in ordine come nei libri di
+      // cucina (src/lib/ordine.ts). Ricetta già esistente: si rispetta
+      // l'ordine che l'utente vede nell'editor, che può avere sistemato a mano.
+      ingredienti: esistente === undefined ? ordinaIngredienti(ingredienti) : ingredienti,
       passaggi,
       creataIl: esistente?.creataIl,
     };
@@ -353,7 +522,8 @@ import { CATEGORIE, DIFFICOLTA } from '../../lib/tipi';
       ricette.map((r) => r.id).filter((altro) => altro !== esistente?.id),
     );
     if (!esito.ok) {
-      annuncia(messaggio, T.errori[esito.errore.replace('errori.', '') as keyof typeof T.errori] ?? esito.errore, 'errore');
+      const chiave = esito.errore.replace('errori.', '') as keyof typeof T.errori;
+      annuncia(messaggio, T.errori[chiave] ?? esito.errore, 'errore');
       messaggio.scrollIntoView({ block: 'center' });
       return;
     }

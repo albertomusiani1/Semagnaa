@@ -5,7 +5,6 @@ porzioni: 6
 tempoPreparazioneMin: 10
 tempoCotturaMin: 90
 difficolta: facile
-descrizione: Si mette sul fuoco e si dimentica per un'ora e mezza. Vale la pena farne tanto e congelarlo in porzioni.
 tags: [base, congelabile, vegano]
 preferita: false
 data: 2026-01-05

@@ -98,9 +98,6 @@ export function validaRicetta(grezzo: unknown, idEsistenti: readonly string[] = 
   const cottura = numeroPositivo(grezzo['tempoCotturaMin'], 24 * 60);
   if (preparazione === null || cottura === null) return errore('errori.tempiNonValidi');
 
-  const descrizioneGrezza = typeof grezzo['descrizione'] === 'string' ? grezzo['descrizione'].trim() : '';
-  if (descrizioneGrezza.length > LIMITI.descrizioneMax) return errore('errori.descrizioneTroppoLunga');
-
   const ingredientiGrezzi = grezzo['ingredienti'];
   if (!Array.isArray(ingredientiGrezzi) || ingredientiGrezzi.length === 0) {
     return errore('errori.almenoUnIngrediente');
@@ -145,7 +142,6 @@ export function validaRicetta(grezzo: unknown, idEsistenti: readonly string[] = 
     tempoPreparazioneMin: Math.round(preparazione),
     tempoCotturaMin: Math.round(cottura),
     difficolta,
-    descrizione: descrizioneGrezza,
     tags,
     preferita: grezzo['preferita'] === true,
     ingredienti,

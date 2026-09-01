@@ -12,7 +12,6 @@ import { PERCORSI } from '../../lib/percorsi';
 
   <article id="ricetta" hidden>
     <h1 id="titolo">{T.stati.caricamento}</h1>
-    <p class="tenue" id="descrizione"></p>
 
     <ul class="dati-ricetta" id="dati"></ul>
 
@@ -75,7 +74,7 @@ import { PERCORSI } from '../../lib/percorsi';
   import { T, interpola } from '../../i18n';
   import { caricaRicette } from '../../lib/seed';
   import { archivio } from '../../lib/archivio';
-  import { elencoIngredienti, messaggioVuoto, tempoTotale } from '../../lib/viste';
+  import { durataLeggibile, elencoIngredienti, messaggioVuoto, tempoTotale } from '../../lib/viste';
   import { annuncia, el, svuota, trova } from '../../lib/dom';
   import { PERCORSI, parametro, urlCucina, urlModifica } from '../../lib/percorsi';
   import { scalaIngredienti } from '../../lib/scala';
@@ -97,18 +96,15 @@ import { PERCORSI } from '../../lib/percorsi';
     trova('#ricetta').hidden = false;
     document.title = `${scheda.titolo} · ${T.app.nome}`;
     trova('#titolo').textContent = scheda.titolo;
-    const descrizione = trova('#descrizione');
-    descrizione.textContent = scheda.descrizione;
-    descrizione.hidden = scheda.descrizione === '';
 
     // Dati sintetici della ricetta.
     const dati = trova('#dati');
     svuota(dati);
     dati.append(
       el('li', {}, [`${T.categorie[scheda.categoria]}`]),
-      el('li', {}, [`${T.ricetta.preparazione}: ${scheda.tempoPreparazioneMin} ${T.ricetta.minuti}`]),
-      el('li', {}, [`${T.ricetta.cottura}: ${scheda.tempoCotturaMin} ${T.ricetta.minuti}`]),
-      el('li', {}, [`${T.ricetta.totale}: ${tempoTotale(scheda)} ${T.ricetta.minuti}`]),
+      el('li', {}, [`${T.ricetta.preparazione}: ${durataLeggibile(scheda.tempoPreparazioneMin)}`]),
+      el('li', {}, [`${T.ricetta.cottura}: ${durataLeggibile(scheda.tempoCotturaMin)}`]),
+      el('li', {}, [`${T.ricetta.totale}: ${durataLeggibile(tempoTotale(scheda))}`]),
       el('li', {}, [`${T.ricetta.difficolta}: ${T.difficolta[scheda.difficolta]}`]),
     );
 

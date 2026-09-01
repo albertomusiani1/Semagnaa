@@ -26,7 +26,6 @@ export const GET: APIRoute = async () => {
         tempoPreparazioneMin: dati.tempoPreparazioneMin,
         tempoCotturaMin: dati.tempoCotturaMin,
         difficolta: dati.difficolta,
-        descrizione: dati.descrizione,
         tags: dati.tags,
         preferita: dati.preferita,
         ingredienti: dati.ingredienti as Ingrediente[],

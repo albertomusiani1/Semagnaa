@@ -5,7 +5,6 @@ porzioni: 4
 tempoPreparazioneMin: 20
 tempoCotturaMin: 55
 difficolta: media
-descrizione: "Due cotture in parallelo: le patate entrano in forno prima, il pollo le raggiunge a metà strada e finiscono insieme."
 tags: [forno, domenica, carne]
 preferita: false
 data: 2026-02-25

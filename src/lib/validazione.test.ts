@@ -9,7 +9,6 @@ const VALIDA = {
   porzioni: 4,
   tempoPreparazioneMin: 10,
   tempoCotturaMin: 20,
-  descrizione: 'Il classico risotto giallo.',
   ingredienti: [
     { nome: 'Riso Carnaroli', quantita: 320, unita: 'g', reparto: 'dispensa' },
     { nome: 'Zafferano', unita: 'qb', reparto: 'dispensa' },
@@ -88,11 +87,6 @@ test('la quantita accetta la virgola decimale e "qb" resta senza numero', () => 
   if (!esito.ok) return;
   assert.equal(esito.dato.ingredienti[0]?.quantita, 1.5);
   assert.equal(esito.dato.ingredienti[1]?.quantita, undefined);
-});
-
-test('descrizione troppo lunga: rifiutata', () => {
-  const esito = validaRicetta({ ...VALIDA, descrizione: 'a'.repeat(201) });
-  assert.deepEqual(esito, { ok: false, errore: 'errori.descrizioneTroppoLunga' });
 });
 
 test('importazione: array valido, JSON rotto, formato sbagliato, file vuoto', () => {
