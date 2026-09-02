@@ -115,6 +115,16 @@ Piano di lavoro operativo, memoria della sessione. Aggiornato a ogni fase comple
 - [x] Icone di navigazione più leggibili (libro aperto, cursori) e imbuto per i filtri
 - [x] Verifiche ripassate e `RESULTS.md` aggiornato
 
+### Fase 13 — Consegna degli aggiornamenti (bug segnalato: l'app restava vecchia)
+- [x] Registrazione del service worker con `updateViaCache: 'none'`
+- [x] Documenti HTML richiesti con `cache: 'no-store'` (la CDN di Pages dura 10 minuti)
+- [x] `registration.update()` all'avvio, al rientro in primo piano e al ritorno della rete
+- [x] `src/lib/aggiornamento.ts`: versione in uso, ricerca aggiornamenti, svuotamento cache
+- [x] Impostazioni: versione servita dal service worker, *Cerca aggiornamenti*, *Svuota la
+      cache e ricarica* (via di fuga che non tocca i dati)
+- [x] `scripts/verifica-aggiornamento.mjs`: simula una pubblicazione e verifica banner,
+      ricarica, cancellazione della cache vecchia e sopravvivenza dei dati — 11/11
+
 ---
 
 ## Decisioni prese in autonomia
@@ -233,6 +243,24 @@ Piano di lavoro operativo, memoria della sessione. Aggiornato a ogni fase comple
     Il campo resta un normale campo di testo — si scrive un ingrediente nuovo senza
     passaggi in più — e il browser ci mette sopra ricerca, tastiera e accessibilità.
     *Scartato*: una tendina custom (più codice, peggiore su telefono).
+
+### Terzo giro (consegna degli aggiornamenti)
+
+20. **L'aggiornamento resta proposto, non forzato, ma ora viene cercato attivamente.**
+    Il difetto non era il banner: era che nessuno chiedeva mai al browser se esistesse una
+    versione nuova, e che la pagina poteva arrivare dalla cache HTTP della CDN. Applicare
+    l'aggiornamento da soli, senza chiedere, resta escluso: si rischia di ricaricare la
+    pagina mentre si sta cucinando con i timer in corso.
+    *Scartato*: `skipWaiting()` automatico a ogni installazione.
+
+21. **Aggiunta una via di fuga esplicita** (*Svuota la cache e ricarica*) invece di
+    affidarsi alle istruzioni "cancella i dati del sito dal browser", che su telefono sono
+    scomode e cancellerebbero **anche le ricette**. Il pulsante rimuove service worker e
+    cache dei file, non l'archivio dei dati, e lo dice.
+
+22. **La versione mostrata nelle impostazioni la chiede il service worker**, non è una
+    costante scritta nel codice: così indica la versione che sta davvero girando sul
+    dispositivo, che è l'unica utile per capire se l'aggiornamento è arrivato.
 
 ---
 

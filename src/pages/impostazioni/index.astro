@@ -46,9 +46,20 @@ import { T } from '../../i18n';
     <h2>{T.impostazioni.sezioneApp}</h2>
     <ul class="dati-ricetta">
       <li>{T.impostazioni.versione}: <span id="versione">—</span></li>
+      <li>{T.impostazioni.versioneInUso}: <span id="versione-cache">—</span></li>
       <li>{T.impostazioni.ricetteInArchivio}: <span id="quante">—</span></li>
       <li id="offline" hidden>{T.impostazioni.statoOffline}</li>
     </ul>
+
+    <p><button class="bottone bottone--secondario" type="button" id="cerca-aggiornamenti">
+      {T.impostazioni.cercaAggiornamenti}
+    </button></p>
+
+    <h3>{T.impostazioni.forzaTitolo}</h3>
+    <p class="piccolo tenue">{T.impostazioni.forzaAiuto}</p>
+    <p><button class="bottone bottone--secondario" type="button" id="forza-aggiornamento">
+      {T.impostazioni.forzaAzione}
+    </button></p>
   </section>
 
   <dialog id="dialogo-azzera" aria-labelledby="azzera-titolo">
@@ -68,6 +79,8 @@ import { T } from '../../i18n';
   import { assicuraSeed, caricaRicette } from '../../lib/seed';
   import { validaImportazione } from '../../lib/validazione';
   import { VERSIONE_APP } from '../../lib/versione';
+  import { cercaAggiornamenti, svuotaCacheERicarica, versioneInUso } from '../../lib/aggiornamento';
+  import { PERCORSI } from '../../lib/percorsi';
 
   const messaggio = trova('#messaggio');
   const ricette = await caricaRicette();
@@ -76,6 +89,23 @@ import { T } from '../../i18n';
   if ('serviceWorker' in navigator && navigator.serviceWorker.controller !== null) {
     trova('#offline').hidden = false;
   }
+
+  // --- versione servita dal service worker -------------------------------
+  const etichettaVersione = trova('#versione-cache');
+  const versione = await versioneInUso();
+  etichettaVersione.textContent = versione ?? '—';
+
+  trova('#cerca-aggiornamenti').addEventListener('click', async () => {
+    annuncia(messaggio, T.pwa.controllo);
+    const cePiuNuova = await cercaAggiornamenti();
+    // Se c'è una versione nuova compare il banner del layout: qui basta dirlo.
+    annuncia(messaggio, cePiuNuova ? T.pwa.aggiornamentoTitolo : T.pwa.aggiornata);
+  });
+
+  trova('#forza-aggiornamento').addEventListener('click', async () => {
+    annuncia(messaggio, T.impostazioni.forzaInCorso);
+    await svuotaCacheERicarica(PERCORSI.home);
+  });
 
   // --- tema ---------------------------------------------------------------
   const scelta = trova<HTMLSelectElement>('#tema');

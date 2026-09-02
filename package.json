@@ -19,7 +19,8 @@
     "astro": "astro",
     "verifica:flussi": "node scripts/verifica-flussi.mjs verifiche",
     "verifica:responsive": "node scripts/verifica-responsive.mjs verifiche/screenshot",
-    "verifica:offline": "node scripts/verifica-offline.mjs"
+    "verifica:offline": "node scripts/verifica-offline.mjs",
+    "verifica:aggiornamento": "node scripts/verifica-aggiornamento.mjs"
   },
   "dependencies": {
     "astro": "^7.2.10"

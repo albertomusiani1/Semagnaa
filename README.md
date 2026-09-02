@@ -57,6 +57,7 @@ Altri comandi:
 | `npm run verifica:flussi` | flussi funzionali in un browser vero (crea ricetta → cucina → spesa) |
 | `npm run verifica:responsive` | screenshot a 360/768/1280 px con controllo di overflow |
 | `npm run verifica:offline` | apre ogni schermata a rete staccata |
+| `npm run verifica:aggiornamento` | simula una pubblicazione e controlla che l'aggiornamento arrivi |
 
 Le ultime tre usano Playwright, che **non** è una dipendenza dell'app: installalo solo
 se vuoi rilanciarle (`npm i -D playwright && npx playwright install chromium`).
@@ -135,6 +136,36 @@ Su iOS l'installazione funziona solo da Safari.
 
 Dopo la prima apertura l'app funziona in aereo: pagine, ricette e liste sono già sul
 dispositivo.
+
+### Come arrivano gli aggiornamenti
+
+Non si reinstalla niente: l'app installata punta sempre allo stesso indirizzo.
+
+1. Pubblichi (push su `main`, l'Action fa il resto).
+2. Alla prima apertura dopo la pubblicazione — o al primo ritorno in primo piano, perché
+   l'app controlla da sola, non più di una volta al minuto — compare in basso il banner
+   **"Nuova versione disponibile — Ricarica"**.
+3. Tocchi *Ricarica*: la versione nuova prende il posto della vecchia e la cache precedente
+   viene cancellata. **Le ricette non si toccano**: stanno nell'archivio del dispositivo,
+   non nella cache dei file.
+
+Se per qualsiasi motivo resta indietro (rete ballerina al momento sbagliato, cache della CDN
+di GitHub Pages che dura dieci minuti), in *Impostazioni → Applicazione* trovi:
+
+- la **versione in uso**, cioè quella che il service worker sta davvero servendo: è il modo
+  per capire a occhio se l'aggiornamento è arrivato;
+- **Cerca aggiornamenti**, che forza il controllo;
+- **Svuota la cache e ricarica**, la via di fuga: butta la copia dell'app salvata sul
+  dispositivo e la riscarica da zero, senza toccare i tuoi dati.
+
+Tre dettagli tecnici che rendono la cosa affidabile, tutti verificati da
+`npm run verifica:aggiornamento`:
+
+- il service worker si registra con `updateViaCache: 'none'`, così il file `sw.js` viene
+  sempre chiesto al server e non riletto dalla cache del browser;
+- le pagine HTML vengono richieste con `cache: 'no-store'`, altrimenti la CDN può servire
+  per dieci minuti la versione precedente;
+- `registration.update()` viene chiamata all'avvio e a ogni rientro in primo piano.
 
 ---
 

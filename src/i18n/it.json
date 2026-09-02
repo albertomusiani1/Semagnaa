@@ -248,7 +248,13 @@
     "sezioneApp": "Applicazione",
     "versione": "Versione",
     "ricetteInArchivio": "Ricette in archivio",
-    "statoOffline": "Disponibile offline"
+    "statoOffline": "Disponibile offline",
+    "versioneInUso": "Versione in uso",
+    "cercaAggiornamenti": "Cerca aggiornamenti",
+    "forzaTitolo": "L’app non si aggiorna?",
+    "forzaAiuto": "Svuota la copia dell’app salvata sul dispositivo e la riscarica. Le tue ricette, la spesa e le impostazioni NON vengono toccate.",
+    "forzaAzione": "Svuota la cache e ricarica",
+    "forzaInCorso": "Svuoto la cache e ricarico..."
   },
   "info": {
     "titolo": "Come funziona",
@@ -341,7 +347,9 @@
   "pwa": {
     "aggiornamentoTitolo": "Nuova versione disponibile",
     "aggiornamentoAzione": "Ricarica",
-    "aggiornamentoIgnora": "Più tardi"
+    "aggiornamentoIgnora": "Più tardi",
+    "controllo": "Controllo aggiornamenti...",
+    "aggiornata": "Hai la versione più recente."
   },
   "filtri": {
     "apri": "Filtri",
