@@ -10,7 +10,6 @@ export function ricettaFinta(parziale: Partial<Ricetta> = {}): Ricetta {
     tempoPreparazioneMin: 10,
     tempoCotturaMin: 20,
     difficolta: 'facile',
-    descrizione: 'Serve solo ai test.',
     tags: [],
     preferita: false,
     ingredienti: [{ nome: 'Farina', quantita: 200, unita: 'g', reparto: 'dispensa' }],

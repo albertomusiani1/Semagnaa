@@ -13,8 +13,8 @@ dispositivo.
 |---|---|---|
 | ![Home](docs/immagini/home.png) | ![Dettaglio ricetta](docs/immagini/ricetta.png) | ![Modalità Cucina](docs/immagini/cucina.png) |
 | Oggi | Dettaglio con porzioni scalabili | Modalità Cucina con timer |
-| ![Checklist dispensa](docs/immagini/dispensa.png) | ![Lista della spesa](docs/immagini/lista.png) | |
-| Checklist dispensa | Lista per reparto | |
+| ![Checklist dispensa](docs/immagini/dispensa.png) | ![Lista della spesa](docs/immagini/lista.png) | ![Filtri](docs/immagini/filtri.png) |
+| Checklist dispensa | Lista per reparto | Filtri richiudibili |
 
 ---
 
@@ -83,7 +83,17 @@ Nel codice **nessun percorso assoluto è scritto a mano**: tutto passa da
 **Oggi** (`/`) — preferite, ricette aperte di recente, ripresa di una sessione di cucina
 interrotta, scorciatoie a spesa e nuova ricetta.
 
-**Ricette** (`/ricette/`) — ricerca per nome, tag o ingrediente e filtro per categoria.
+**Ricette** (`/ricette/`) — ricerca per nome, tag o ingrediente, più un pannello di **filtri
+richiudibile** (parte chiuso e dice quanti filtri sono attivi):
+
+- **categoria** e **difficoltà**;
+- **durata totale**: fino a 30 min, 30-60 min, 1-2 ore, più di 2 ore;
+- **attese**: *da lasciar cuocere* (un passaggio con almeno un'ora di attesa, o un'ora di
+  cottura dichiarata) oppure *senza attese lunghe*;
+- **passaggi**: pochi (fino a 4) o tanti (da 8).
+
+Le soglie stanno tutte in `SOGLIE`, in cima a `src/lib/filtri.ts`: si cambiano lì una volta
+e cambiano insieme filtri, etichette sulle schede e test.
 
 **Dettaglio** (`/ricetta/?id=...`) — ingredienti con **porzioni scalabili** (le quantità si
 ricalcolano), passaggi, tempi, preferita, modifica, eliminazione, "aggiungi alla spesa".
@@ -151,9 +161,31 @@ Con un dominio dedicato: metti `BASE_PATH: /` nel workflow e il dominio in `SITE
 
 ### Dal telefono (il modo normale)
 
-`Ricette` → **Nuova ricetta**. Ingredienti e passaggi si aggiungono, si riordinano e si
-rimuovono uno per uno; nel passaggio puoi mettere un timer in minuti. Al salvataggio la
-ricetta viene validata e finisce nell'archivio del dispositivo.
+`Ricette` → **Nuova ricetta**. Il modulo è pensato per essere compilato un pezzo alla volta:
+
+- **tempi**: la preparazione in minuti, la cottura in **ore e minuti**. Cottura vuol dire il
+  tempo in cui il cibo cuoce o riposa da solo — forno, fuoco, frigorifero, lievitazione —
+  mentre tu fai altro; la preparazione è il tempo in cui lavori tu.
+- **tag**: tocchi quelli suggeriti (nascono dai tag che usi già, più una manciata di partenza)
+  oppure ne scrivi uno nuovo e tocchi *Aggiungi tag*.
+- **ingredienti**: uno alla volta. Il campo del nome suggerisce gli ingredienti che hai già
+  usato mentre scrivi; scegliendone uno noto, **unità e reparto si compilano da soli**. Se
+  invece è nuovo, lo scrivi e basta. Tocchi *Aggiungi ingrediente* e finisce nell'elenco
+  sopra, dove puoi riordinarlo o toglierlo.
+- **passaggi**: identico. Scrivi cosa si fa, eventualmente i minuti di attesa e il **nome del
+  timer** (è l'etichetta che leggi quando parte: "Prima lievitazione", "Cottura in forno" —
+  serve a riconoscerlo quando hai due o tre timer insieme), poi *Aggiungi passaggio*.
+- **salvando una ricetta nuova gli ingredienti vengono messi in ordine da soli**, secondo la
+  convenzione dei libri di cucina: prima le basi (farine, paste, riso, zucchero), poi
+  liquidi, uova e latticini, carne e pesce, verdure, grassi, aromi, e in fondo il *quanto
+  basta*. Dentro ogni gruppo, prima le quantità più grandi. La regola è in
+  `src/lib/ordine.ts`, è un'euristica dichiarata e testata: se non ti piace, si cambia lì.
+  Modificando una ricetta già salvata l'ordine che vedi nell'editor viene rispettato, così
+  un tuo riordino manuale non viene cancellato; il bottone *Ordina come nei libri di cucina*
+  riapplica la regola quando la vuoi.
+
+I passaggi restano nell'ordine in cui li hai messi tu: quello è il procedimento, non si
+riordina da solo.
 
 ### Come ricetta "di esempio" nel repository
 
@@ -176,9 +208,7 @@ tempoPreparazioneMin: 15
 tempoCotturaMin: 0
 # Una di: facile, media, impegnativa.
 difficolta: facile
-# Massimo 200 caratteri. Se contiene ":" va messa tra virgolette doppie.
-descrizione: Solo mortaio e pazienza, niente frullatore che scalda le foglie.
-# Etichette libere, servono alla ricerca. Massimo 12.
+# Etichette libere, servono alla ricerca e ai filtri. Massimo 12.
 tags: [base, veloce, vegetariano]
 # true la mette tra le preferite in home.
 preferita: false
@@ -294,6 +324,9 @@ telefono, *Impostazioni → Ricarica le ricette di esempio*).
 | Colori, tipografia, spaziature | `src/styles/global.css`, blocco `:root` (e i due blocchi del tema scuro) |
 | Ricette di esempio | `src/content/ricette/*.md` — cancellale tutte se vuoi partire da zero |
 | Reparti del supermercato e loro ordine | `REPARTI` in `src/lib/tipi.ts` + etichette in `it.json` → `reparti` |
+| Soglie dei filtri (cosa è "attesa lunga", "tanti passaggi") | `SOGLIE` in `src/lib/filtri.ts` |
+| Ordine con cui gli ingredienti vengono elencati | `GRUPPI` e le liste di parole in `src/lib/ordine.ts` |
+| Tag proposti quando l'archivio è ancora vuoto | `TAG_BASE` in `src/pages/modifica/index.astro` |
 | Categorie e unità di misura | `CATEGORIE` / `UNITA` in `src/lib/tipi.ts` + etichette in `it.json` |
 | Icone e favicon | `public/icone/`, `public/favicon.svg` (le PNG si rigenerano dall'SVG) |
 | Nome del repository / base path | `astro.config.mjs` (`BASE_PATH`) e il workflow |
@@ -389,3 +422,8 @@ BASE_PATH=/ node scripts/check-pages.mjs --base http://localhost:4321/
   riapertura il timer è già segnato come scaduto.
 - **Unità non convertibili non vengono sommate** (grammi e cucchiai): è voluto, meglio due
   voci che una somma sbagliata.
+- **L'ordine automatico degli ingredienti è un'euristica**, non capisce la ricetta: guarda il
+  reparto, l'unità e alcune parole chiave. Si applica solo al primo salvataggio; dopo,
+  l'ordine è quello che decidi tu nell'editor.
+- **Le ricette non hanno foto**: le schede mostrano titolo e caratteristiche. È una scelta,
+  vedi la nota su immagini e video in `PLAN.md`.

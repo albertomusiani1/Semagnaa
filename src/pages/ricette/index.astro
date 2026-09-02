@@ -2,8 +2,29 @@
 import Base from '../../layouts/Base.astro';
 import Icona from '../../components/Icona.astro';
 import { T } from '../../i18n';
-import { CATEGORIE } from '../../lib/tipi';
-import { PERCORSI, urlModifica } from '../../lib/percorsi';
+import { CATEGORIE, DIFFICOLTA } from '../../lib/tipi';
+import { FASCE_DURATA, SCELTE_ATTESA, SCELTE_PASSAGGI } from '../../lib/filtri';
+import { urlModifica } from '../../lib/percorsi';
+
+/** Etichette delle fasce di durata: chiavi i18n costruite dal valore. */
+const etichettaDurata = {
+  fino30: T.filtri.durataFino30,
+  da30a60: T.filtri.durataDa30a60,
+  da1a2h: T.filtri.durataDa1a2h,
+  oltre2h: T.filtri.durataOltre2h,
+} as const;
+
+const etichettaAttesa = {
+  qualsiasi: T.filtri.attesaQualsiasi,
+  lunghe: T.filtri.attesaLunghe,
+  brevi: T.filtri.attesaBrevi,
+} as const;
+
+const etichettaPassaggi = {
+  qualsiasi: T.filtri.passaggiQualsiasi,
+  pochi: T.filtri.passaggiPochi,
+  tanti: T.filtri.passaggiTanti,
+} as const;
 ---
 
 <Base titolo={T.ricette.titolo}>
@@ -17,63 +38,169 @@ import { PERCORSI, urlModifica } from '../../lib/percorsi';
 
   <div class="campo">
     <label for="cerca">{T.ricette.cerca}</label>
-    <input type="search" id="cerca" name="cerca" autocomplete="off" placeholder={T.ricette.cerca} />
+    <input type="search" id="cerca" name="cerca" autocomplete="off" />
   </div>
 
-  <nav class="filtri" aria-label={T.ricette.filtraPerCategoria}>
-    <a class="filtri__voce" href={PERCORSI.ricette} data-categoria="">{T.ricette.tutte}</a>
-    {
-      CATEGORIE.map((categoria) => (
-        <a class="filtri__voce" href={`${PERCORSI.ricette}?categoria=${categoria}`} data-categoria={categoria}>
-          {T.categorie[categoria]}
-        </a>
-      ))
-    }
-  </nav>
+  <details class="pannello-filtri" id="pannello-filtri">
+    <summary>
+      <Icona nome="filtro" dimensione={20} />
+      <span>{T.filtri.apri}</span>
+      <span class="pannello-filtri__conteggio" id="filtri-attivi">{T.filtri.nessunoAttivo}</span>
+    </summary>
+
+    <div class="pannello-filtri__corpo">
+      <fieldset class="gruppo-filtro">
+        <legend>{T.filtri.categoria}</legend>
+        <ul class="filtri" data-gruppo="categoria">
+          <li>
+            <label class="filtri__voce">
+              <input type="radio" name="categoria" value="" checked />
+              <span>{T.filtri.tutte}</span>
+            </label>
+          </li>
+          {
+            CATEGORIE.map((categoria) => (
+              <li>
+                <label class="filtri__voce">
+                  <input type="radio" name="categoria" value={categoria} />
+                  <span>{T.categorie[categoria]}</span>
+                </label>
+              </li>
+            ))
+          }
+        </ul>
+      </fieldset>
+
+      <fieldset class="gruppo-filtro">
+        <legend>{T.filtri.difficolta}</legend>
+        <ul class="filtri" data-gruppo="difficolta">
+          {
+            DIFFICOLTA.map((difficolta) => (
+              <li>
+                <label class="filtri__voce">
+                  <input type="checkbox" name="difficolta[]" value={difficolta} />
+                  <span>{T.difficolta[difficolta]}</span>
+                </label>
+              </li>
+            ))
+          }
+        </ul>
+      </fieldset>
+
+      <fieldset class="gruppo-filtro">
+        <legend>{T.filtri.durata}</legend>
+        <ul class="filtri" data-gruppo="durata">
+          {
+            FASCE_DURATA.map((fascia) => (
+              <li>
+                <label class="filtri__voce">
+                  <input type="checkbox" name="durata[]" value={fascia} />
+                  <span>{etichettaDurata[fascia]}</span>
+                </label>
+              </li>
+            ))
+          }
+        </ul>
+      </fieldset>
+
+      <fieldset class="gruppo-filtro">
+        <legend>{T.filtri.attese}</legend>
+        <ul class="filtri" data-gruppo="attesa">
+          {
+            SCELTE_ATTESA.map((scelta) => (
+              <li>
+                <label class="filtri__voce">
+                  <input type="radio" name="attesa" value={scelta} checked={scelta === 'qualsiasi'} />
+                  <span>{etichettaAttesa[scelta]}</span>
+                </label>
+              </li>
+            ))
+          }
+        </ul>
+      </fieldset>
+
+      <fieldset class="gruppo-filtro">
+        <legend>{T.filtri.passaggi}</legend>
+        <ul class="filtri" data-gruppo="passaggi">
+          {
+            SCELTE_PASSAGGI.map((scelta) => (
+              <li>
+                <label class="filtri__voce">
+                  <input type="radio" name="passaggi" value={scelta} checked={scelta === 'qualsiasi'} />
+                  <span>{etichettaPassaggi[scelta]}</span>
+                </label>
+              </li>
+            ))
+          }
+        </ul>
+      </fieldset>
+
+      <button class="bottone bottone--secondario" type="button" id="azzera-filtri">{T.filtri.azzera}</button>
+    </div>
+  </details>
 
   <p class="tenue piccolo" id="conteggio" aria-live="polite"></p>
   <div id="elenco"><p class="tenue">{T.stati.caricamento}</p></div>
 </Base>
 
 <script>
-  import { T } from '../../i18n';
+  import { T, interpola } from '../../i18n';
   import { caricaRicette, ordinaRicette } from '../../lib/seed';
   import { contaRicette, grigliaRicette, messaggioVuoto } from '../../lib/viste';
   import { svuota, trova, tutti } from '../../lib/dom';
   import { normalizzaNome } from '../../lib/testo';
   import { parametro } from '../../lib/percorsi';
-  import type { Categoria } from '../../lib/tipi';
-  import { CATEGORIE } from '../../lib/tipi';
+  import { CATEGORIE, type Categoria, type Difficolta } from '../../lib/tipi';
+  import {
+    FILTRI_VUOTI,
+    applicaFiltri,
+    filtriAttivi,
+    type FasciaDurata,
+    type Filtri,
+    type SceltaAttesa,
+    type SceltaPassaggi,
+  } from '../../lib/filtri';
 
   const ricette = ordinaRicette(await caricaRicette());
   const elenco = trova('#elenco');
   const conteggio = trova('#conteggio');
+  const riassuntoFiltri = trova('#filtri-attivi');
+  const pannello = trova<HTMLDetailsElement>('#pannello-filtri');
   const campoRicerca = trova<HTMLInputElement>('#cerca');
 
-  const grezza = parametro('categoria');
-  const categoria: Categoria | null =
-    grezza !== null && (CATEGORIE as readonly string[]).includes(grezza) ? (grezza as Categoria) : null;
+  const filtri: Filtri = { ...FILTRI_VUOTI, difficolta: [], durata: [] };
 
-  for (const voce of tutti<HTMLAnchorElement>('.filtri__voce')) {
-    const suo = voce.dataset['categoria'] ?? '';
-    if ((categoria ?? '') === suo) voce.setAttribute('aria-current', 'true');
+  // Un link tipo /ricette/?categoria=dolci arriva da fuori: lo rispettiamo e
+  // apriamo il pannello, così si vede subito che un filtro è attivo.
+  const daUrl = parametro('categoria');
+  if (daUrl !== null && (CATEGORIE as readonly string[]).includes(daUrl)) {
+    filtri.categoria = daUrl as Categoria;
+    const scelta = tutti<HTMLInputElement>('input[name="categoria"]').find((i) => i.value === daUrl);
+    if (scelta !== undefined) scelta.checked = true;
+    pannello.open = true;
+  }
+
+  function valoriSpuntati(nome: string): string[] {
+    return tutti<HTMLInputElement>(`input[name="${nome}"]`)
+      .filter((campo) => campo.checked)
+      .map((campo) => campo.value);
+  }
+
+  function leggiFiltri(): void {
+    const categoria = valoriSpuntati('categoria')[0] ?? '';
+    filtri.categoria = categoria === '' ? null : (categoria as Categoria);
+    filtri.difficolta = valoriSpuntati('difficolta[]') as Difficolta[];
+    filtri.durata = valoriSpuntati('durata[]') as FasciaDurata[];
+    filtri.attesa = (valoriSpuntati('attesa')[0] ?? 'qualsiasi') as SceltaAttesa;
+    filtri.passaggi = (valoriSpuntati('passaggi')[0] ?? 'qualsiasi') as SceltaPassaggi;
+    filtri.testo = campoRicerca.value;
   }
 
   function disegna(): void {
-    const termine = normalizzaNome(campoRicerca.value);
-    const filtrate = ricette.filter((ricetta) => {
-      if (categoria !== null && ricetta.categoria !== categoria) return false;
-      if (termine === '') return true;
-      const dentro = [
-        ricetta.titolo,
-        ricetta.descrizione,
-        ...ricetta.tags,
-        ...ricetta.ingredienti.map((i) => i.nome),
-      ]
-        .map((t) => normalizzaNome(t))
-        .join(' ');
-      return dentro.includes(termine);
-    });
+    const filtrate = applicaFiltri(ricette, filtri, normalizzaNome);
+    const attivi = filtriAttivi(filtri);
+    riassuntoFiltri.textContent =
+      attivi === 0 ? T.filtri.nessunoAttivo : attivi === 1 ? T.filtri.unoAttivo : interpola(T.filtri.attivi, { n: attivi });
 
     svuota(elenco);
     conteggio.textContent = contaRicette(filtrate.length);
@@ -85,9 +212,28 @@ import { PERCORSI, urlModifica } from '../../lib/percorsi';
       elenco.append(messaggioVuoto(T.ricette.nessunRisultato, T.ricette.nessunRisultatoAiuto));
       return;
     }
-    elenco.append(grigliaRicette(filtrate));
+    // Titoli h2: la griglia sta subito sotto l'h1 della pagina.
+    elenco.append(grigliaRicette(filtrate, 2));
   }
 
-  campoRicerca.addEventListener('input', disegna);
-  disegna();
+  function aggiorna(): void {
+    leggiFiltri();
+    disegna();
+  }
+
+  for (const campo of tutti<HTMLInputElement>('.pannello-filtri input')) {
+    campo.addEventListener('change', aggiorna);
+  }
+  campoRicerca.addEventListener('input', aggiorna);
+
+  trova('#azzera-filtri').addEventListener('click', () => {
+    for (const campo of tutti<HTMLInputElement>('.pannello-filtri input')) {
+      if (campo.type === 'checkbox') campo.checked = false;
+      else campo.checked = campo.value === '' || campo.value === 'qualsiasi';
+    }
+    campoRicerca.value = '';
+    aggiorna();
+  });
+
+  aggiorna();
 </script>

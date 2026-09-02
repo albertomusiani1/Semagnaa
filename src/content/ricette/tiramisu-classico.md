@@ -5,7 +5,6 @@ porzioni: 8
 tempoPreparazioneMin: 30
 tempoCotturaMin: 0
 difficolta: facile
-descrizione: Senza panna e senza cottura delle uova, come si fa in casa. L'unico passaggio delicato è montare bene i tuorli.
 tags: [dolce, senza forno, uova]
 preferita: false
 data: 2026-02-02

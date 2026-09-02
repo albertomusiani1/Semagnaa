@@ -34,23 +34,24 @@
 :root {
   color-scheme: light dark;
 
-  /* Palette: un primario scuro desaturato, neutri caldi, un accento solo
-     per le azioni e i timer attivi. */
-  --colore-primario: #2f3e36;
-  --colore-primario-chiaro: #4a5f53;
-  --colore-accento: #a4553a;
-  --colore-accento-scuro: #8a4630;
+  /* Palette luminosa: fondi chiari e arieggiati, un verde vivo per le
+     azioni, un arancio caldo come accento (timer attivi, cose da fare).
+     Tutti i contrasti testo/fondo restano sopra 4.5:1. */
+  --colore-primario: #2c6b4a;
+  --colore-primario-chiaro: #38855c;
+  --colore-accento: #d2703f;
+  --colore-accento-scuro: #a2482a;
 
-  --fondo: #faf7f2;
-  --fondo-alternato: #f2ede4;
+  --fondo: #fefdfa;
+  --fondo-alternato: #f7f4ec;
   --superficie: #ffffff;
-  --superficie-scura: #efe9df;
-  --bordo: #ded5c8;
-  --testo: #22261f;
-  --testo-tenue: #5b6157;
-  --testo-inverso: #fbf9f5;
-  --ok: #2c6e49;
-  --errore: #9b2c25;
+  --superficie-scura: #f2efe6;
+  --bordo: #e6e1d4;
+  --testo: #1d231e;
+  --testo-tenue: #5a625a;
+  --testo-inverso: #ffffff;
+  --ok: #1f7a4d;
+  --errore: #b02a20;
 
   /* Tipografia: due famiglie, scala 1.2 arrotondata. */
   --font-testo: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -76,9 +77,9 @@
   --space-7: 3rem;
   --space-8: 4rem;
 
-  --raggio: 10px;
-  --raggio-grande: 16px;
-  --ombra: 0 1px 2px rgb(34 38 31 / 8%), 0 2px 8px rgb(34 38 31 / 6%);
+  --raggio: 12px;
+  --raggio-grande: 18px;
+  --ombra: 0 1px 2px rgb(29 35 30 / 5%), 0 4px 12px rgb(29 35 30 / 4%);
   --tocco: 44px;
   --tocco-grande: 56px;
   --transizione: 120ms ease-out;
@@ -88,39 +89,39 @@
 /* Tema scuro di sistema. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema='chiaro']) {
-    --colore-primario: #b9cbbf;
-    --colore-primario-chiaro: #cfded4;
-    --colore-accento: #e0a086;
-    --colore-accento-scuro: #eab79f;
-    --fondo: #161a17;
-    --fondo-alternato: #1d221e;
-    --superficie: #222823;
-    --superficie-scura: #2b322c;
-    --bordo: #3a423b;
-    --testo: #edeae4;
-    --testo-tenue: #b3b8ae;
-    --testo-inverso: #161a17;
-    --ok: #7fc39b;
-    --errore: #f0a09a;
+    --colore-primario: #a8dcbf;
+    --colore-primario-chiaro: #c4ead4;
+    --colore-accento: #f0a578;
+    --colore-accento-scuro: #f5bd9a;
+    --fondo: #191d1a;
+    --fondo-alternato: #212722;
+    --superficie: #262d28;
+    --superficie-scura: #313a33;
+    --bordo: #414a42;
+    --testo: #f0ede7;
+    --testo-tenue: #bcc2b9;
+    --testo-inverso: #12160f;
+    --ok: #8fd6ab;
+    --errore: #f5a9a2;
   }
 }
 
 /* Tema scuro forzato dalle impostazioni. */
 :root[data-tema='scuro'] {
-  --colore-primario: #b9cbbf;
-  --colore-primario-chiaro: #cfded4;
-  --colore-accento: #e0a086;
-  --colore-accento-scuro: #eab79f;
-  --fondo: #161a17;
-  --fondo-alternato: #1d221e;
-  --superficie: #222823;
-  --superficie-scura: #2b322c;
-  --bordo: #3a423b;
-  --testo: #edeae4;
-  --testo-tenue: #b3b8ae;
-  --testo-inverso: #161a17;
-  --ok: #7fc39b;
-  --errore: #f0a09a;
+  --colore-primario: #a8dcbf;
+  --colore-primario-chiaro: #c4ead4;
+  --colore-accento: #f0a578;
+  --colore-accento-scuro: #f5bd9a;
+  --fondo: #191d1a;
+  --fondo-alternato: #212722;
+  --superficie: #262d28;
+  --superficie-scura: #313a33;
+  --bordo: #414a42;
+  --testo: #f0ede7;
+  --testo-tenue: #bcc2b9;
+  --testo-inverso: #12160f;
+  --ok: #8fd6ab;
+  --errore: #f5a9a2;
 }
 
 /* --- 3. Reset misurato --------------------------------------------------- */
@@ -489,19 +490,6 @@ textarea {
   box-shadow: var(--ombra);
 }
 
-.scheda__figura {
-  margin: 0;
-  aspect-ratio: 3 / 2;
-  background: var(--superficie-scura);
-}
-
-.scheda__figura svg,
-.scheda__figura img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 .scheda__corpo {
   padding: var(--space-4);
   display: flex;
@@ -512,7 +500,7 @@ textarea {
 
 .scheda__titolo {
   font-family: var(--font-titoli);
-  font-size: var(--testo-m);
+  font-size: var(--testo-l);
   line-height: var(--interlinea-titoli);
   margin: 0;
 }
@@ -524,12 +512,6 @@ textarea {
 
 .scheda__titolo a:hover {
   text-decoration: underline;
-}
-
-.scheda__descrizione {
-  margin: 0;
-  font-size: var(--testo-s);
-  color: var(--testo-tenue);
 }
 
 .scheda__meta {
@@ -562,15 +544,82 @@ textarea {
   color: var(--testo-inverso);
 }
 
-/* --- 8. Filtri (solo CSS, nessun JS) ------------------------------------ */
+/* --- 8. Filtri (pannello richiudibile) ---------------------------------- */
+
+.pannello-filtri {
+  background: var(--superficie);
+  border: 1px solid var(--bordo);
+  border-radius: var(--raggio-grande);
+  margin-bottom: var(--space-4);
+  overflow: hidden;
+}
+
+.pannello-filtri > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tocco);
+  padding: var(--space-3) var(--space-4);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.pannello-filtri > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Freccia che gira all'apertura, senza JS. */
+.pannello-filtri > summary::after {
+  content: '';
+  margin-left: auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--testo-tenue);
+  border-bottom: 2px solid var(--testo-tenue);
+  transform: rotate(45deg);
+  transition: transform var(--transizione);
+}
+
+.pannello-filtri[open] > summary::after {
+  transform: rotate(-135deg);
+}
+
+.pannello-filtri__conteggio {
+  font-weight: 400;
+  font-size: var(--testo-s);
+  color: var(--testo-tenue);
+}
+
+.pannello-filtri__corpo {
+  padding: 0 var(--space-4) var(--space-4);
+  border-top: 1px solid var(--bordo);
+  padding-top: var(--space-4);
+}
+
+.gruppo-filtro {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+}
+
+.gruppo-filtro legend {
+  padding: 0;
+  font-size: var(--testo-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--testo-tenue);
+  margin-bottom: var(--space-2);
+}
 
 .filtri {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  overflow-x: auto;
-  padding-bottom: var(--space-2);
-  margin-bottom: var(--space-4);
-  scrollbar-width: thin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .filtri__voce {
@@ -585,13 +634,32 @@ textarea {
   color: var(--testo);
   text-decoration: none;
   font-size: var(--testo-s);
+  cursor: pointer;
 }
 
-.filtri__voce[aria-current='true'] {
+.filtri__voce input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.filtri__voce:hover {
+  border-color: var(--colore-primario);
+  background: var(--fondo-alternato);
+}
+
+.filtri__voce[aria-current='true'],
+.filtri__voce:has(input:checked) {
   background: var(--colore-primario);
   border-color: var(--colore-primario);
   color: var(--testo-inverso);
   font-weight: 700;
+}
+
+.filtri__voce:has(input:focus-visible) {
+  outline: 3px solid var(--colore-accento);
+  outline-offset: 2px;
 }
 
 /* --- 9. Moduli ---------------------------------------------------------- */
@@ -1120,6 +1188,10 @@ dialog::backdrop {
   border: 0;
   padding: 0;
   margin: 0 0 var(--space-6);
+}
+
+.spazio-sopra {
+  margin-top: var(--space-4);
 }
 
 .spazio-sotto {

@@ -52,33 +52,86 @@ await p.goto(`${BASE}ricette/?categoria=dolci`, { waitUntil: 'networkidle' });
 await p.waitForSelector('.scheda');
 ok('filtro categoria dolci', (await p.locator('.scheda').count()) === 1);
 
-// 5. crea ricetta
+// 5. crea ricetta: una voce alla volta, come in un ricettario
 await p.goto(`${BASE}modifica/`, { waitUntil: 'networkidle' });
 await p.fill('#titolo', 'Pane e pomodoro di prova');
 await p.selectOption('#categoria', 'antipasti');
 await p.fill('#porzioni', '2');
-await p.fill('#descrizione', 'Ricetta creata dal test end-to-end.');
-const righeIngredienti = p.locator('li[data-riga="ingrediente"]');
-await righeIngredienti.nth(0).locator('[name="nome"]').fill('Pane');
-await righeIngredienti.nth(0).locator('[name="quantita"]').fill('200');
-await righeIngredienti.nth(0).locator('[name="unita"]').selectOption('g');
-await righeIngredienti.nth(0).locator('[name="reparto"]').selectOption('panetteria');
-await righeIngredienti.nth(1).locator('[name="nome"]').fill('Pomodori pelati');
-await righeIngredienti.nth(1).locator('[name="quantita"]').fill('300');
-await righeIngredienti.nth(1).locator('[name="unita"]').selectOption('g');
-await righeIngredienti.nth(1).locator('[name="reparto"]').selectOption('dispensa');
-const righePassaggi = p.locator('li[data-riga="passaggio"]');
-await righePassaggi.nth(0).locator('[name="testo"]').fill('Taglia il pane e condiscilo.');
-await righePassaggi.nth(0).locator('[name="timer"]').fill('1');
-await righePassaggi.nth(0).locator('[name="timerEtichetta"]').fill('Riposo');
+await p.fill('#preparazione', '10');
+await p.fill('#cottura-ore', '1');
+await p.fill('#cottura-minuti', '30');
+
+// tag: uno suggerito e uno scritto a mano
+const suggerito = p.locator('#tag-suggeriti button').first();
+const nomeSuggerito = (await suggerito.textContent()) ?? '';
+await suggerito.click();
+await p.fill('#nuovo-tag', 'prova e2e');
+await p.click('#aggiungi-tag');
+const tagScelti = await p.locator('#tag-scelti .tag-scelto').allTextContents();
+ok('editor: tag suggerito e tag nuovo aggiunti',
+  tagScelti.length === 2 && tagScelti.some((t) => t.includes(nomeSuggerito)) && tagScelti.some((t) => t.includes('prova e2e')),
+  tagScelti.join(' | '));
+
+// ingrediente 1: nome nuovo, dati a mano
+await p.fill('#ing-nome', 'Pane');
+await p.fill('#ing-quantita', '200');
+await p.selectOption('#ing-unita', 'g');
+await p.selectOption('#ing-reparto', 'panetteria');
+await p.click('#aggiungi-ingrediente');
+ok('editor: primo ingrediente in elenco', (await p.locator('#ingredienti > li').count()) === 1);
+
+// ingrediente 2: nome già usato in un'altra ricetta -> unità e reparto si compilano da soli
+await p.fill('#ing-nome', 'Pomodori pelati');
+await p.locator('#ing-nome').dispatchEvent('change');
+const unitaAuto = await p.locator('#ing-unita').inputValue();
+const repartoAuto = await p.locator('#ing-reparto').inputValue();
+ok('editor: ingrediente noto compila unità e reparto', unitaAuto === 'g' && repartoAuto === 'dispensa', `${unitaAuto} / ${repartoAuto}`);
+await p.fill('#ing-quantita', '300');
+await p.click('#aggiungi-ingrediente');
+
+// ingrediente 3: quanto basta, che deve finire in fondo all'elenco
+await p.fill('#ing-nome', 'Sale');
+await p.selectOption('#ing-unita', 'qb');
+await p.selectOption('#ing-reparto', 'dispensa');
+await p.click('#aggiungi-ingrediente');
+ok('editor: tre ingredienti in elenco', (await p.locator('#ingredienti > li').count()) === 3);
+
+// un ingrediente senza nome non si aggiunge
+await p.click('#aggiungi-ingrediente');
+ok('editor: rifiuta un ingrediente senza nome',
+  (await p.locator('#ingredienti > li').count()) === 3 && (await p.locator('#messaggio').getAttribute('data-tipo')) === 'errore');
+
+// passaggi, uno alla volta
+await p.fill('#pas-testo', 'Taglia il pane e condiscilo.');
+await p.fill('#pas-timer', '1');
+await p.fill('#pas-timer-nome', 'Riposo');
+await p.click('#aggiungi-passaggio');
+await p.fill('#pas-testo', 'Porta in tavola.');
+await p.click('#aggiungi-passaggio');
+ok('editor: due passaggi in elenco', (await p.locator('#passaggi > li').count()) === 2);
+
+// riordino: il secondo passaggio va su
+await p.locator('#passaggi > li').nth(1).locator('button[aria-label="Sposta su"]').click();
+const primoPassaggio = (await p.locator('#passaggi > li').first().textContent()) ?? '';
+ok('editor: riordino dei passaggi', primoPassaggio.includes('Porta in tavola'), primoPassaggio.trim().slice(0, 40));
+// rimesso al suo posto
+await p.locator('#passaggi > li').first().locator('button[aria-label="Sposta giu"]').click();
+
 await p.click('button[type="submit"]');
 await p.waitForURL(/ricetta\/\?id=pane-e-pomodoro-di-prova/, { timeout: 5000 });
 ok('salvataggio porta al dettaglio', p.url().includes('pane-e-pomodoro-di-prova'));
 
-// 6. dettaglio: titolo e ingredienti
+// 6. dettaglio: titolo, ingredienti ordinati, tempi in ore
 await p.waitForSelector('#ricetta:not([hidden])');
 ok('dettaglio mostra il titolo', (await p.locator('#titolo').textContent()) === 'Pane e pomodoro di prova');
-ok('dettaglio mostra 2 ingredienti', (await p.locator('.elenco-ingredienti li').count()) === 2);
+ok('dettaglio mostra 3 ingredienti', (await p.locator('.elenco-ingredienti li').count()) === 3);
+const nomiIngredienti = await p.locator('.elenco-ingredienti li > span:first-child').allTextContents();
+ok('ingredienti ordinati come nei libri (q.b. in fondo)',
+  nomiIngredienti[0].includes('Pane') && nomiIngredienti[2].includes('Sale'),
+  nomiIngredienti.join(' | '));
+const dati = await p.locator('#dati li').allTextContents();
+ok('cottura mostrata in ore e minuti', dati.some((t) => /Cottura: 1 h 30 min/.test(t)), dati.join(' | '));
+ok('niente descrizione nel dettaglio', (await p.locator('#descrizione').count()) === 0);
 
 // 7. scala porzioni 2 -> 4
 await p.click('#porzioni-piu');
@@ -87,10 +140,44 @@ ok('porzioni scalate a 4', (await p.locator('#porzioni-valore').textContent()) =
 const quantitaScalate = await p.locator('.elenco-ingredienti__quantita').allTextContents();
 ok('quantità raddoppiate', quantitaScalate.includes('400 g') && quantitaScalate.includes('600 g'), quantitaScalate.join(' | '));
 
-// 8. la ricetta creata è nell'elenco
+// 8. la ricetta creata è nell'elenco, e i filtri funzionano
 await p.goto(`${BASE}ricette/`, { waitUntil: 'networkidle' });
 await p.waitForSelector('.scheda');
 ok('la nuova ricetta è in elenco', (await p.locator('.scheda').count()) === 10);
+ok('le schede non hanno immagine di anteprima', (await p.locator('.scheda__figura').count()) === 0);
+ok('le schede non hanno descrizione', (await p.locator('.scheda__descrizione').count()) === 0);
+
+const pannello = p.locator('#pannello-filtri');
+ok('i filtri partono chiusi', (await pannello.getAttribute('open')) === null);
+await pannello.locator('summary').click();
+ok('i filtri si aprono', (await pannello.getAttribute('open')) !== null);
+
+await p.locator('.filtri[data-gruppo="difficolta"] label:has-text("Impegnativa")').click();
+await p.waitForTimeout(150);
+const impegnative = await p.locator('.scheda').count();
+ok('filtro per difficoltà', impegnative === 1, `${impegnative} ricette`);
+ok('conteggio dei filtri attivi', /1 attivo/.test((await p.locator('#filtri-attivi').textContent()) ?? ''));
+await p.click('#azzera-filtri');
+await p.waitForTimeout(150);
+ok('azzera i filtri', (await p.locator('.scheda').count()) === 10);
+
+await p.locator('.filtri[data-gruppo="attesa"] label:has-text("Da lasciar cuocere")').click();
+await p.waitForTimeout(150);
+const conAttese = await p.locator('.scheda__titolo').allTextContents();
+ok('filtro per attese lunghe', conAttese.length > 0 && conAttese.some((t) => /Focaccia|Ragù|Brodo/.test(t)), conAttese.join(' | '));
+await p.click('#azzera-filtri');
+
+await p.locator('.filtri[data-gruppo="durata"] label:has-text("Fino a 30 min")').click();
+await p.waitForTimeout(150);
+const veloci = await p.locator('.scheda__titolo').allTextContents();
+ok('filtro per durata', veloci.length > 0 && veloci.every((t) => !/Focaccia/.test(t)), veloci.join(' | '));
+await p.click('#azzera-filtri');
+
+await p.locator('.filtri[data-gruppo="passaggi"] label:has-text("Tanti, da 8")').click();
+await p.waitForTimeout(150);
+const tanti = await p.locator('.scheda__titolo').allTextContents();
+ok('filtro per numero di passaggi', tanti.length > 0 && tanti.some((t) => /Focaccia|Ragù/.test(t)), tanti.join(' | '));
+await p.click('#azzera-filtri');
 
 // 9. modalità Cucina + timer
 await p.goto(`${BASE}cucina/?id=pasta-al-pomodoro-e-basilico`, { waitUntil: 'networkidle' });

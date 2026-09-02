@@ -74,7 +74,6 @@ export interface Ricetta {
   tempoPreparazioneMin: number;
   tempoCotturaMin: number;
   difficolta: Difficolta;
-  descrizione: string;
   tags: string[];
   preferita: boolean;
   ingredienti: Ingrediente[];
@@ -93,7 +92,6 @@ export interface Quantita {
 
 export const LIMITI = {
   titoloMax: 90,
-  descrizioneMax: 200,
   nomeIngredienteMax: 80,
   testoPassaggioMax: 600,
   timerMaxSecondi: 60 * 60 * 48,

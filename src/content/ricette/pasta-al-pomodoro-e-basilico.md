@@ -5,7 +5,6 @@ porzioni: 4
 tempoPreparazioneMin: 10
 tempoCotturaMin: 25
 difficolta: facile
-descrizione: Il piatto di sempre. Il sugo cuoce mentre l'acqua bolle, quindi in mezz'ora si mangia.
 tags: [veloce, base, vegetariano]
 preferita: true
 data: 2026-02-14

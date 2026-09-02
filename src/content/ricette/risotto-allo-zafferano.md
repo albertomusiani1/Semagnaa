@@ -5,7 +5,6 @@ porzioni: 4
 tempoPreparazioneMin: 10
 tempoCotturaMin: 20
 difficolta: media
-descrizione: Diciotto minuti di attenzione continua e un buon brodo caldo. La mantecatura fuori dal fuoco fa la differenza.
 tags: [risotto, classico, vegetariano]
 preferita: false
 data: 2026-02-20

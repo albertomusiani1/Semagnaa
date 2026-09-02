@@ -5,7 +5,6 @@ porzioni: 8
 tempoPreparazioneMin: 30
 tempoCotturaMin: 25
 difficolta: impegnativa
-descrizione: "Impasto molto idratato, lievitazione lenta di quattro ore e salamoia in superficie. Richiede attesa, non fatica: i tempi morti sono lunghi ma il lavoro effettivo è poco."
 tags: [lievitati, forno, weekend, vegetariano]
 preferita: true
 data: 2026-01-20
