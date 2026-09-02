@@ -1,8 +1,8 @@
 ---
 /**
  * Isola di avvio comune: tema salvato, registrazione del service worker,
- * banner di aggiornamento. Nessun testo qui: il markup del banner sta nel
- * layout, con le stringhe di i18n.
+ * ricerca attiva degli aggiornamenti, banner "nuova versione".
+ * Nessun testo qui: il markup del banner sta nel layout, con le stringhe di i18n.
  */
 import { percorso } from '../lib/percorsi';
 const percorsoSw = percorso('sw.js');
@@ -15,14 +15,18 @@ const ambitoSw = percorso();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => {
       navigator.serviceWorker
-        .register(percorsoSw, { scope: ambitoSw })
+        // `updateViaCache: 'none'`: il file sw.js viene sempre richiesto al
+        // server, mai riletto dalla cache HTTP del browser. Senza questo, dopo
+        // una pubblicazione il telefono può continuare a usare il vecchio
+        // service worker per tutta la durata della cache della CDN.
+        .register(percorsoSw, { scope: ambitoSw, updateViaCache: 'none' })
         .then((registrazione) => {
           const banner = document.getElementById('banner-aggiornamento');
           const ricarica = document.getElementById('banner-ricarica');
           const ignora = document.getElementById('banner-ignora');
-          if (banner === null || ricarica === null || ignora === null) return;
 
           const proponi = (attesa) => {
+            if (banner === null || ricarica === null || ignora === null) return;
             banner.hidden = false;
             ricarica.onclick = () => {
               attesa.postMessage({ tipo: 'attiva-subito' });
@@ -32,7 +36,9 @@ const ambitoSw = percorso();
             };
           };
 
+          // Una versione nuova può essere già pronta da una visita precedente.
           if (registrazione.waiting !== null) proponi(registrazione.waiting);
+
           registrazione.addEventListener('updatefound', () => {
             const inArrivo = registrazione.installing;
             if (inArrivo === null) return;
@@ -42,6 +48,25 @@ const ambitoSw = percorso();
               }
             });
           });
+
+          // Cerca attivamente gli aggiornamenti: all'avvio e ogni volta che
+          // l'app torna in primo piano (non più di una volta al minuto).
+          // Senza questo, il browser controlla quando gli pare e una versione
+          // nuova può restare invisibile per giorni.
+          let ultimoControllo = 0;
+          const controlla = () => {
+            const ora = Date.now();
+            if (ora - ultimoControllo < 60_000) return;
+            ultimoControllo = ora;
+            registrazione.update().catch(() => {
+              /* offline: si riprova al prossimo rientro */
+            });
+          };
+          controlla();
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') controlla();
+          });
+          window.addEventListener('online', controlla);
         })
         .catch(() => {
           /* Senza service worker l'app funziona, solo non offline. */

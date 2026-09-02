@@ -7,7 +7,7 @@ immagine e descrizione, filtri richiudibili, nuovo editor): vedi §7.
 Tutti gli output qui sotto sono **copiati dai comandi realmente eseguiti** (log completi in
 `verifiche/`, cartella non versionata).
 
-**Esito complessivo: 18 verifiche su 18 verdi.**
+**Esito complessivo: 19 verifiche su 19 verdi.**
 
 ---
 
@@ -34,6 +34,7 @@ Tutti gli output qui sotto sono **copiati dai comandi realmente eseguiti** (log 
 | 16 | Flussi funzionali | `npm run verifica:flussi` | tutti i passaggi riusciti | ✅ 47/47, 0 errori in pagina |
 | 17 | Offline | `npm run verifica:offline` | tutte le schermate si aprono senza rete | ✅ 10/10 schermate + dati intatti |
 | 18 | Base path | build con `/Semagnaa/` e con `/` | nessun link, asset, SW o manifest rotto | ✅ entrambe le configurazioni |
+| 19 | Consegna degli aggiornamenti | `npm run verifica:aggiornamento` | l'app rileva la versione nuova, la applica, cancella la cache vecchia e non perde i dati | ✅ 11/11 |
 
 ---
 
@@ -606,3 +607,67 @@ I video sono il punto da decidere con la testa fredda: le foto risolvono il 90% 
 niente di visibile e con i test a controllare che l'archivio si comporti identico; poi le
 foto nei passaggi, con ridimensionamento obbligatorio e un limite dichiarato. I video per
 ultimi, se dopo un mese di uso vero ne senti la mancanza.
+
+
+---
+
+## 8. Terzo giro: l'app non si aggiornava
+
+**Sintomo riportato**: dopo la pubblicazione, sul telefono si vedeva ancora la versione
+precedente all'indirizzo `https://albertomusiani1.github.io/Semagnaa/`.
+
+**Cosa ho potuto verificare e cosa no.** Da questo ambiente il dominio `github.io` non è
+raggiungibile (blocco di rete della sessione: `registry.npmjs.org` risponde 200, il dominio
+del sito 000), quindi **non ho potuto guardare il sito pubblicato**. Ho verificato l'altra
+metà: ricostruendo il progetto da `origin/main`, cioè esattamente da ciò che la Action ha
+pubblicato, il costruito contiene il pannello dei filtri, la palette nuova, la cottura in
+ore e nessuna immagine di anteprima. La run [#2](https://github.com/albertomusiani1/Semagnaa/actions/runs/33602075782)
+è verde in tutti i passaggi, `deploy-pages` compreso. Il file pubblicato è quello nuovo.
+
+**Causa.** Tre difetti miei nella consegna degli aggiornamenti, non nella pubblicazione:
+
+1. **nessuno chiedeva mai al browser se ci fosse una versione nuova.** Il banner "Nuova
+   versione disponibile" compariva solo se il browser, per suo conto, decideva di
+   ricontrollare `sw.js`: può passare molto tempo. Ora `registration.update()` viene
+   chiamata all'avvio, a ogni rientro in primo piano e al ritorno della rete (non più di
+   una volta al minuto).
+2. **il file `sw.js` poteva essere riletto dalla cache HTTP.** Ora la registrazione usa
+   `updateViaCache: 'none'`: quel file viene sempre chiesto al server.
+3. **le pagine HTML potevano arrivare dalla cache HTTP della CDN**, che su GitHub Pages
+   dichiara dieci minuti di validità: il service worker chiedeva la pagina alla rete, ma la
+   riceveva vecchia e la rimetteva in cache. Ora le richiede con `cache: 'no-store'`.
+
+**In più, una via di fuga.** In *Impostazioni → Applicazione* ci sono la **versione in uso**
+(chiesta al service worker, quindi è quella che sta davvero girando), **Cerca aggiornamenti**
+e **Svuota la cache e ricarica**, che butta la copia dell'app salvata sul dispositivo e la
+riscarica senza toccare ricette, spesa e impostazioni.
+
+**Verifica 19, output reale.** Lo script installa il service worker, poi modifica `dist/`
+come farebbe una pubblicazione nuova, e controlla che l'app se ne accorga:
+
+```
+$ npm run verifica:aggiornamento
+OK       prima visita: service worker attivo e cache creata (semagnaa-26ce6ba0c77f)
+OK       ricette in archivio prima dell aggiornamento (9)
+OK       la nuova versione viene rilevata e proposta nel banner
+OK       dopo "Ricarica" la pagina servita è quella nuova
+OK       la cache è quella della versione nuova (semagnaa-provaversione)
+OK       la cache vecchia è stata cancellata (semagnaa-provaversione)
+OK       le ricette sopravvivono all aggiornamento (9)
+OK       le impostazioni mostrano la versione in uso (provaversione)
+OK       la via di fuga ricarica l app (/?aggiornata=1788333617273)
+OK       svuotare la cache non tocca le ricette (9)
+OK       dopo lo svuotamento l app funziona
+
+11/11 passi riusciti
+```
+
+**Limite dichiarato.** Questa correzione riguarda gli aggiornamenti **futuri**: sul telefono
+gira ancora il service worker della versione precedente, che non ha nessuna di queste tre
+protezioni. Per uscire dalla situazione attuale serve una volta sola un intervento a mano
+(aprire l'indirizzo con una query diversa, per esempio `?v=2`, oppure cancellare i dati del
+sito dal browser). Dalla prossima pubblicazione in poi il banner arriva da solo.
+
+Batteria completa dopo la correzione: build e `astro check` puliti, 61 test, 13/13 pagine a
+200, `html-validate` e `linkinator` a zero, 47/47 passi funzionali, 33/33 viste responsive,
+offline su tutte le schermate, 11/11 sulla consegna degli aggiornamenti.

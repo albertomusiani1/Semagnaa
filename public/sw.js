@@ -6,8 +6,11 @@
  * l'elenco dei file da mettere in cache non si scrive a mano.
  *
  * Strategia:
- *  - documenti HTML: rete per prima, con ricaduta sulla cache e infine sulla
- *    home (così offline si apre sempre qualcosa di sensato);
+ *  - documenti HTML: rete per prima, **senza passare dalla cache HTTP**
+ *    (`cache: 'no-store'`), con ricaduta sulla cache del service worker e
+ *    infine sulla home, così offline si apre sempre qualcosa di sensato.
+ *    Il `no-store` è la differenza fra vedere l'aggiornamento e restare
+ *    con la pagina di dieci minuti prima servita dalla CDN;
  *  - tutto il resto: cache per prima, poi rete, e quello che arriva dalla
  *    rete viene messo in cache.
  */
@@ -37,8 +40,15 @@ self.addEventListener('activate', (evento) => {
 });
 
 // L'aggiornamento non è mai forzato: l'utente tocca "Ricarica" nel banner.
+// L'app può anche chiedere quale versione sta servendo: serve alle
+// impostazioni, per far vedere a occhio se l'aggiornamento è arrivato.
 self.addEventListener('message', (evento) => {
-  if (evento.data && evento.data.tipo === 'attiva-subito') self.skipWaiting();
+  const dati = evento.data;
+  if (!dati) return;
+  if (dati.tipo === 'attiva-subito') self.skipWaiting();
+  if (dati.tipo === 'versione' && evento.ports && evento.ports[0]) {
+    evento.ports[0].postMessage({ versione: VERSIONE });
+  }
 });
 
 function eDocumento(richiesta) {
@@ -55,7 +65,9 @@ self.addEventListener('fetch', (evento) => {
     evento.respondWith(
       (async () => {
         try {
-          const dallaRete = await fetch(richiesta);
+          // `no-store`: la pagina arriva dal server, non dalla cache HTTP del
+          // browser (GitHub Pages dichiara dieci minuti di validità).
+          const dallaRete = await fetch(richiesta, { cache: 'no-store' });
           const cache = await caches.open(NOME_CACHE);
           cache.put(richiesta, dallaRete.clone());
           return dallaRete;
