@@ -7,7 +7,7 @@ immagine e descrizione, filtri richiudibili, nuovo editor): vedi §7.
 Tutti gli output qui sotto sono **copiati dai comandi realmente eseguiti** (log completi in
 `verifiche/`, cartella non versionata).
 
-**Esito complessivo: 19 verifiche su 19 verdi.**
+**Esito complessivo: 20 verifiche su 20 verdi.**
 
 ---
 
@@ -17,24 +17,25 @@ Tutti gli output qui sotto sono **copiati dai comandi realmente eseguiti** (log 
 |---|---|---|---|---|
 | 1 | Build | `npm run build` | exit 0, zero warning | ✅ exit 0, 0 warning |
 | 2 | Type check | `npx astro check` | 0 errori, 0 warning | ✅ 0 errori, 0 warning, 0 hint (49 file) |
-| 3 | Pagine raggiungibili | `npm run preview` + `node scripts/check-pages.mjs` | tutte 200 | ✅ 13/13 a 200 |
+| 3 | Pagine raggiungibili | `npm run preview` + `node scripts/check-pages.mjs` | tutte 200 | ✅ 16/16 a 200 |
 | 4 | 404 | richiesta a URL inesistente | pagina 404 personalizzata | ✅ `404 Not Found` + pagina dell'app |
 | 5 | Lighthouse home (mobile) | `npx lighthouse` | Perf ≥95, A11y ≥95, BP ≥95 | ✅ 99 / 100 / 100 (SEO 100) |
 | 6 | Lighthouse modalità Cucina | idem su `/cucina/?id=…` | stesse soglie | ✅ 99 / 100 / 100 (SEO 100); anche `/ricette/` 98 e `/modifica/` 99 |
 | 7 | PWA installabile | ispezione di `dist/` + Lighthouse | manifest e SW coerenti con la base | ✅ manifest, SW, 4 icone, meta iOS |
 | 8 | HTML valido | `npx html-validate "dist/**/*.html"` | 0 errori | ✅ exit 0, nessun errore |
-| 9 | Link interni | `npx linkinator … --recurse` | 0 link rotti | ✅ 22 link, 0 rotti |
-| 10 | Test | `npm test` | tutti verdi | ✅ 61/61 |
-| 10b | Astrazione storage | `grep -rn localStorage src \| grep -v archivio-locale.ts` | nessuna corrispondenza | ✅ nessuna corrispondenza |
+| 9 | Link interni | `npx linkinator … --recurse` | 0 link rotti | ✅ 26 link, 0 rotti |
+| 10 | Test | `npm test` | tutti verdi | ✅ 82/82 |
+| 10b | Astrazione storage | `grep -rn 'localStorage\|indexedDB' src`, escluse le due implementazioni | nessuna corrispondenza | ✅ nessuna corrispondenza |
 | 11 | Schema collection | `.md` con campo mancante + build | la build **deve** fallire | ✅ exit 1 con errore leggibile, file rimosso |
 | 12 | Dipendenze e domini terzi | `node scripts/check-no-deps.mjs` | nessuna dipendenza runtime estranea | ✅ solo `astro`, nessun dominio terzo |
 | 13 | Vulnerabilità | `npm audit --audit-level=high` | 0 high/critical | ✅ 0 vulnerabilità |
-| 14 | Responsive | `npm run verifica:responsive` (360/768/1280) | nessun overflow, nessun testo tagliato | ✅ 33/33 viste |
+| 14 | Responsive | `npm run verifica:responsive` (360/768/1280) | nessun overflow, nessun testo tagliato | ✅ 45/45 viste |
 | 15 | i18n | grep dei testi letterali nei template | tutte le label da `it.json` | ✅ nessun testo hardcoded |
 | 16 | Flussi funzionali | `npm run verifica:flussi` | tutti i passaggi riusciti | ✅ 47/47, 0 errori in pagina |
 | 17 | Offline | `npm run verifica:offline` | tutte le schermate si aprono senza rete | ✅ 10/10 schermate + dati intatti |
 | 18 | Base path | build con `/Semagnaa/` e con `/` | nessun link, asset, SW o manifest rotto | ✅ entrambe le configurazioni |
 | 19 | Consegna degli aggiornamenti | `npm run verifica:aggiornamento` | l'app rileva la versione nuova, la applica, cancella la cache vecchia e non perde i dati | ✅ 11/11 |
+| 20 | Cantina | `npm run verifica:vini` | si entra sui soli filtri, "Cerca" mostra le bottiglie, la foto viene ridotta e salvata, le note lunghe restano nella scheda | ✅ 26/26 |
 
 ---
 
@@ -671,3 +672,124 @@ sito dal browser). Dalla prossima pubblicazione in poi il banner arriva da solo.
 Batteria completa dopo la correzione: build e `astro check` puliti, 61 test, 13/13 pagine a
 200, `html-validate` e `linkinator` a zero, 47/47 passi funzionali, 33/33 viste responsive,
 offline su tutte le schermate, 11/11 sulla consegna degli aggiornamenti.
+
+
+---
+
+## 9. Quarto giro: la Cantina
+
+Sezione nuova, richiesta così: *"una sezione enorme per i vini con filtri per
+regione/stato, cantina, bianco rosso rosé frizzante fermo; all'inizio solo i filtri, poi
+Cerca, poi i vini come in un ecommerce; caricando un vino devo poter fare foto, inserire i
+filtri, la descrizione e il gusto; la descrizione solo aprendo il singolo vino."*
+
+| Richiesta | Come è stata risolta |
+|---|---|
+| Filtri per regione/stato e cantina | Tre menu — **stato**, **regione o zona**, **cantina** — costruiti dai vini che hai inserito, non da un elenco fisso. Scegliendo lo stato, le regioni si restringono |
+| Bianco/rosso/rosé e frizzante/fermo | **Due filtri distinti**: colore (rosso, bianco, rosato) e bollicine (fermo, frizzante, spumante). Sono due dimensioni indipendenti: così "tutti i bianchi" e "solo le bollicine" sono due ricerche diverse, e si possono combinare |
+| Prima solo i filtri | `/vini/` si apre sul modulo di ricerca: i risultati sono nascosti finché non si tocca **Cerca**. Poi i filtri si chiudono e restano riassunti in una barra, con *Cambia i filtri* per riaprirli |
+| Risultati come in un ecommerce | Griglia a **due colonne sul telefono**, tre su tablet, quattro su schermo grande: foto, nome, cantina, il gusto in una riga, etichette di colore, bollicine, annata e zona |
+| Foto al caricamento | Campo che apre **fotocamera o galleria**; la foto viene ridotta sul dispositivo e salvata in IndexedDB. Chi non ha ancora la foto vede la sagoma di una bottiglia del colore giusto |
+| Descrizione e gusto | Due campi separati: il **gusto** è una riga e si legge nell'elenco, la **descrizione** è il testo lungo |
+| Descrizione solo nel singolo vino | Verificato dal test: il testo delle note non compare da nessuna parte nella griglia dei risultati |
+
+In più, perché una cantina serva davvero: filtro per intervallo di **annata**, filtro
+**solo i preferiti**, ricerca libera su nome, cantina, zona e gusto, gradazione, stella dei
+preferiti sulla scheda, eliminazione che porta via anche la foto.
+
+### Dove stanno le foto
+
+`localStorage`, che tiene ricette e schede dei vini, memorizza solo testo e si ferma
+attorno ai 5 MB: una singola foto di telefono lo riempirebbe. Le foto stanno quindi in
+**IndexedDB**, dietro una seconda interfaccia (`src/lib/immagini.ts`) con la stessa regola
+dell'archivio dati: l'implementazione è un file solo, l'unico che nomina `indexedDB`.
+
+Prima del salvataggio ogni foto viene **ridotta sul dispositivo**: nel test una foto da
+2400×3200 px esce a 1400 px di lato lungo e **19 kB**.
+
+### Verifica 20, output reale
+
+```
+$ npm run verifica:vini
+OK       cantina vuota: compare l invito
+OK       cantina vuota: nessun modulo di ricerca
+OK       il vino salvato apre la sua scheda
+OK       la scheda mostra il nome
+OK       la scheda mostra le note lunghe
+OK       la foto compare nella scheda
+OK       la foto è salvata in IndexedDB ({"quante":1,"byte":18702,"tipo":"image/jpeg","lato":1400})
+OK       la foto viene rimpicciolita prima di salvarla (1400 px, 19 kB, image/jpeg)
+OK       entrando si vedono i filtri
+OK       entrando NON si vedono i vini
+OK       il conteggio dice quanti vini ci sono
+OK       gli stati vengono dai vini inseriti (Tutti | Francia | Italia)
+OK       le cantine vengono dai vini inseriti (Tutte | Ca del Bosco | Domaine Laroche | Marchesi di Barolo | Paltrinieri)
+OK       dopo Cerca compaiono le bottiglie
+OK       dopo Cerca i filtri si chiudono
+OK       il riepilogo dice cosa è stato cercato
+OK       le note lunghe non compaiono nell elenco
+OK       si torna ai filtri
+OK       scegliendo lo stato le regioni si restringono (Tutte | Borgogna)
+OK       filtro per stato
+OK       filtro per bollicine
+OK       è il lambrusco
+OK       la foto è ancora lì dopo il ricaricamento
+OK       cancellando il vino sparisce la sua foto (foto rimaste: 0)
+OK       restano gli altri vini
+OK       ricette e vini convivono nell archivio ({"ricette":9,"vini":3})
+
+26/26 passi riusciti
+```
+
+### Il resto della batteria dopo la Cantina
+
+```
+npm test                  82/82   (21 nuovi: filtri della cantina e validazione dei vini)
+astro check               0 errori, 0 warning, 0 hint (70 file)
+check-pages               16/16 risorse a 200
+html-validate             exit 0
+linkinator                26 link, 0 rotti
+verifica:flussi           47/47
+verifica:responsive       45/45 viste (comprese le quattro schermate della cantina)
+verifica:offline          tutte le schermate senza rete
+verifica:aggiornamento    11/11
+npm audit                 0 vulnerabilità
+```
+
+Lighthouse (mobile), quattro pagine fra cui le due nuove:
+
+| Pagina | Performance | Accessibilità | Best practices | SEO | LCP | CLS |
+|---|---|---|---|---|---|---|
+| `/` | 99 | 100 | 100 | 100 | 1.7 s | 0 |
+| `/vini/` | 99 | 100 | 100 | 100 | 2.0 s | 0.002 |
+| `/vino/modifica/` | 99 | 100 | 100 | 100 | 1.8 s | 0.002 |
+| `/cucina/?id=…` | 99 | 100 | 100 | 100 | 1.8 s | 0.049 |
+
+Durante questo giro Lighthouse ha segnalato un difetto vecchio nella modalità Cucina: il
+nome accessibile dei pulsanti ("Passaggio successivo") non conteneva il testo visibile
+("Avanti"), contro il criterio WCAG *Label in Name*. Corretto: ora il nome accessibile è
+"Avanti, al passaggio successivo".
+
+### Peso, dopo la sezione nuova
+
+```
+dist: 383.2 kB in 56 file    (CSS 21.7 kB, JavaScript 78.3 kB in chunk condivisi)
+```
+
+| Pagina | HTML | HTML + CSS + JS |
+|---|---|---|
+| `/modifica/` | 16.3 kB | **45.6 kB** |
+| `/cucina/` | 9.1 kB | 38.4 kB |
+| `/vino/modifica/` | 13.2 kB | 38.3 kB |
+| `/vini/` | 12.8 kB | 37.8 kB |
+| `/ricetta/` | 12.5 kB | 37.2 kB |
+
+### Limiti dichiarati
+
+- **Le foto non entrano nell'esportazione JSON**: il file contiene ricette e schede dei
+  vini, non i file binari. Cambiando telefono i vini si ritrovano, le loro foto no. La
+  strada, quando servirà, è un archivio zip.
+- **Nessun vino di esempio**: bottiglie finte in una cantina personale andrebbero
+  cancellate una per una. La cantina vuota mostra un invito ad aggiungere il primo vino.
+- **La cantina riparte sempre dai filtri**, anche tornando indietro da una scheda: i valori
+  dell'ultima ricerca restano compilati, i risultati si rivedono toccando Cerca.

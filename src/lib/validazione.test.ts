@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validaImportazione, validaRicetta } from './validazione.ts';
+import { validaImportazione, validaRicetta, validaVino } from './validazione.ts';
 
 const VALIDA = {
   titolo: 'Risotto allo zafferano',
@@ -118,4 +118,96 @@ test('esportazione e reimportazione conservano i dati (andata e ritorno)', () =>
   assert.deepEqual(tornata.ingredienti, primo.dato.ingredienti);
   assert.deepEqual(tornata.passaggi, primo.dato.passaggi);
   assert.equal(tornata.creataIl, primo.dato.creataIl);
+});
+
+/* --- Vini --------------------------------------------------------------- */
+
+const VINO_VALIDO = {
+  nome: 'Barolo Cannubi',
+  cantina: 'Marchesi di Barolo',
+  paese: 'Italia',
+  regione: 'Piemonte',
+  colore: 'rosso',
+  bollicine: 'fermo',
+  annata: '2016',
+  gusto: 'Tannico, austero, lunghissimo.',
+  descrizione: 'Aperto a cena di Natale: servirebbe un altro paio di anni di bottiglia.',
+};
+
+test('un vino completo passa e prende un id da cantina e nome', () => {
+  const esito = validaVino(VINO_VALIDO);
+  assert.equal(esito.ok, true);
+  if (!esito.ok) return;
+  assert.equal(esito.dato.id, 'marchesi-di-barolo-barolo-cannubi');
+  assert.equal(esito.dato.annata, 2016);
+  assert.equal(esito.dato.preferito, false);
+  assert.equal(esito.dato.colore, 'rosso');
+  assert.equal(esito.dato.bollicine, 'fermo');
+});
+
+test('nome e cantina sono obbligatori', () => {
+  assert.deepEqual(validaVino({ ...VINO_VALIDO, nome: '  ' }), {
+    ok: false,
+    errore: 'errori.nomeVinoObbligatorio',
+  });
+  assert.deepEqual(validaVino({ ...VINO_VALIDO, cantina: '' }), {
+    ok: false,
+    errore: 'errori.cantinaObbligatoria',
+  });
+});
+
+test('colore e bollicine devono stare nei loro elenchi', () => {
+  assert.deepEqual(validaVino({ ...VINO_VALIDO, colore: 'arancione' }), {
+    ok: false,
+    errore: 'errori.coloreNonValido',
+  });
+  assert.deepEqual(validaVino({ ...VINO_VALIDO, bollicine: 'gassato' }), {
+    ok: false,
+    errore: 'errori.bollicineNonValide',
+  });
+});
+
+test('annata fuori intervallo: rifiutata', () => {
+  assert.deepEqual(validaVino({ ...VINO_VALIDO, annata: '1750' }), {
+    ok: false,
+    errore: 'errori.annataNonValida',
+  });
+  assert.deepEqual(validaVino({ ...VINO_VALIDO, annata: 'boh' }), {
+    ok: false,
+    errore: 'errori.annataNonValida',
+  });
+});
+
+test('un vino senza annata è ammesso', () => {
+  const { annata, ...senzaAnnata } = VINO_VALIDO;
+  void annata;
+  const esito = validaVino(senzaAnnata);
+  assert.equal(esito.ok, true);
+  if (esito.ok) assert.equal(esito.dato.annata, undefined);
+});
+
+test('gusto e descrizione troppo lunghi: rifiutati', () => {
+  assert.deepEqual(validaVino({ ...VINO_VALIDO, gusto: 'a'.repeat(141) }), {
+    ok: false,
+    errore: 'errori.gustoTroppoLungo',
+  });
+  assert.deepEqual(validaVino({ ...VINO_VALIDO, descrizione: 'a'.repeat(2001) }), {
+    ok: false,
+    errore: 'errori.descrizioneVinoTroppoLunga',
+  });
+});
+
+test('il riferimento alla foto viene conservato', () => {
+  const esito = validaVino({ ...VINO_VALIDO, fotoId: 'foto-abc123' });
+  assert.equal(esito.ok, true);
+  if (esito.ok) assert.equal(esito.dato.fotoId, 'foto-abc123');
+});
+
+test('due vini con lo stesso nome e cantina prendono id diversi', () => {
+  const primo = validaVino(VINO_VALIDO);
+  assert.equal(primo.ok, true);
+  if (!primo.ok) return;
+  const secondo = validaVino(VINO_VALIDO, [primo.dato.id]);
+  assert.equal(secondo.ok, true);
+  if (secondo.ok) assert.equal(secondo.dato.id, `${primo.dato.id}-2`);
 });

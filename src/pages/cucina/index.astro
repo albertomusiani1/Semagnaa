@@ -50,12 +50,12 @@ import { PERCORSI } from '../../lib/percorsi';
         class="bottone bottone--secondario bottone--grande"
         type="button"
         id="precedente"
-        aria-label={T.cucina.precedente}
+        aria-label={T.cucina.precedenteAria}
       >
         <Icona nome="freccia-sinistra" dimensione={22} />
         {T.cucina.precedenteBreve}
       </button>
-      <button class="bottone bottone--grande" type="button" id="successivo" aria-label={T.cucina.successivo}>
+      <button class="bottone bottone--grande" type="button" id="successivo" aria-label={T.cucina.successivoAria}>
         <span id="successivo-testo">{T.cucina.successivoBreve}</span>
         <Icona nome="freccia-destra" dimensione={22} />
       </button>
@@ -196,7 +196,7 @@ import { PERCORSI } from '../../lib/percorsi';
       bottonePrecedente.disabled = indice === 0;
       const ultimo = indice === scheda.passaggi.length - 1;
       trova('#successivo-testo').textContent = ultimo ? T.cucina.fineBreve : T.cucina.successivoBreve;
-      bottoneSuccessivo.setAttribute('aria-label', ultimo ? T.cucina.fine : T.cucina.successivo);
+      bottoneSuccessivo.setAttribute('aria-label', ultimo ? T.cucina.fineAria : T.cucina.successivoAria);
 
       if (passaggio.timerSecondi === undefined) {
         riquadroTimer.hidden = true;

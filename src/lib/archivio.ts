@@ -7,7 +7,7 @@
  * `archivio-<qualcosa>.ts` che implementa `Archivio` e si punta a quello.
  * Vedi README, sezione "Cambiare tecnologia di storage".
  */
-import type { Ricetta } from './tipi.ts';
+import type { Ricetta, Vino } from './tipi.ts';
 import type { Esito } from './esito.ts';
 
 /** Chiavi di stato ammesse: elenco chiuso, così non si sparpagliano stringhe. */
@@ -19,7 +19,8 @@ export type ChiaveStato =
   | 'spesa-selezione'
   | 'spesa-dispensa'
   | 'spesa-spuntate'
-  | 'ultime-aperte';
+  | 'ultime-aperte'
+  | 'vini-filtri';
 
 export interface Archivio {
   leggiRicette(): Promise<Esito<Ricetta[]>>;
@@ -31,6 +32,13 @@ export interface Archivio {
   sostituisciRicette(ricette: readonly Ricetta[]): Promise<Esito<void>>;
   /** Unisce per `id`: le ricette passate vincono sulle omonime esistenti. */
   unisciRicette(ricette: readonly Ricetta[]): Promise<Esito<void>>;
+  leggiVini(): Promise<Esito<Vino[]>>;
+  leggiVino(id: string): Promise<Esito<Vino | null>>;
+  salvaVino(vino: Vino): Promise<Esito<Vino>>;
+  cancellaVino(id: string): Promise<Esito<void>>;
+  /** Unisce per `id`: usata dall'importazione. */
+  unisciVini(vini: readonly Vino[]): Promise<Esito<void>>;
+
   leggiStato<T>(chiave: ChiaveStato, predefinito: T): Promise<Esito<T>>;
   scriviStato<T>(chiave: ChiaveStato, valore: T): Promise<Esito<void>>;
   rimuoviStato(chiave: ChiaveStato): Promise<Esito<void>>;

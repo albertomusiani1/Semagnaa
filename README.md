@@ -1,9 +1,9 @@
 # Semagnaa
 
 App personale di cucina: archivio ricette, **modalità Cucina** passo a passo con timer,
-**modalità Spesa** con checklist della dispensa. Funziona **offline**, si installa sul
-telefono come app (PWA), non ha backend e non manda niente a nessuno: i dati stanno sul
-dispositivo.
+**modalità Spesa** con checklist della dispensa e **Cantina**, il catalogo dei vini con
+foto e ricerca a filtri. Funziona **offline**, si installa sul telefono come app (PWA),
+non ha backend e non manda niente a nessuno: i dati stanno sul dispositivo.
 
 - Costruita con [Astro](https://astro.build) in output statico, TypeScript `strict`, CSS puro.
 - Nessuna dipendenza runtime oltre ad Astro. Nessun font o script da domini terzi.
@@ -15,6 +15,8 @@ dispositivo.
 | Oggi | Dettaglio con porzioni scalabili | Modalità Cucina con timer |
 | ![Checklist dispensa](docs/immagini/dispensa.png) | ![Lista della spesa](docs/immagini/lista.png) | ![Filtri](docs/immagini/filtri.png) |
 | Checklist dispensa | Lista per reparto | Filtri richiudibili |
+| ![Cantina, filtri](docs/immagini/cantina-filtri.png) | ![Cantina, vetrina](docs/immagini/cantina-vetrina.png) | |
+| Cantina: prima i filtri | poi le bottiglie | |
 
 ---
 
@@ -58,6 +60,7 @@ Altri comandi:
 | `npm run verifica:responsive` | screenshot a 360/768/1280 px con controllo di overflow |
 | `npm run verifica:offline` | apre ogni schermata a rete staccata |
 | `npm run verifica:aggiornamento` | simula una pubblicazione e controlla che l'aggiornamento arrivi |
+| `npm run verifica:vini` | crea vini con foto e prova filtri, ricerca e cancellazione |
 
 Le ultime tre usano Playwright, che **non** è una dipendenza dell'app: installalo solo
 se vuoi rilanciarle (`npm i -D playwright && npx playwright install chromium`).
@@ -121,8 +124,29 @@ grandi come il pollice. Dove serve c'è il timer:
 Le quantità si sommano solo dove ha senso: `g` con `kg`, `ml` con `l`. Grammi e cucchiai
 restano voci separate, `q.b.` compare una volta sola e senza numero.
 
+**Cantina** (`/vini/`) — il catalogo dei vini, pensato come uno scaffale: si entra e si
+trovano **solo i filtri**, si sceglie, si tocca **Cerca** e solo allora compaiono le
+bottiglie, in una griglia da negozio.
+
+- **Filtri**: testo libero (nome, cantina, zona), **stato**, **regione o zona**,
+  **cantina**, **colore** (rosso, bianco, rosato), **bollicine** (fermo, frizzante,
+  spumante), intervallo di **annata**, solo i preferiti.
+- Colore e bollicine sono **due filtri distinti**, non un elenco unico: esiste il bianco
+  fermo e il bianco spumante, e volerli separare è il motivo per cui esistono due campi.
+- Gli elenchi di stato, regione e cantina **nascono dai vini che inserisci**: non c'è
+  nessuna lista precompilata da correggere. Scegliendo uno stato, le regioni si
+  restringono a quelle di quello stato.
+- Ogni scheda mostra foto (o una sagoma colorata come il vino), nome, cantina, il **gusto**
+  in poche parole e le etichette. Le **note lunghe si vedono solo aprendo il singolo
+  vino**: l'elenco resta scorrevole.
+
+**Aggiungere un vino** (`/vino/modifica/`) — foto scattata sul momento o presa dalla
+galleria, nome, cantina, stato e regione (con i suggerimenti di quello che hai già
+inserito), colore, bollicine, annata, gradazione, il gusto in una riga e le note lunghe.
+
 **Impostazioni** (`/impostazioni/`) — tema, esportazione e importazione JSON, ricarica
-delle ricette di esempio, azzeramento dei dati.
+delle ricette di esempio, azzeramento dei dati, versione in uso e spazio occupato dalle
+foto.
 
 ---
 
@@ -335,7 +359,11 @@ telefono, *Impostazioni → Ricarica le ricette di esempio*).
     │   ├── spesa.ts            aggregazione ingredienti → lista
     │   ├── scala.ts            scalatura porzioni
     │   ├── validazione.ts      validazione editor e importazione
-    │   ├── seed.ts             primo caricamento delle ricette di esempio
+    │   ├── vini.ts             filtri e ricerca della cantina (puri)
+│   ├── immagini.ts         interfaccia dell'archivio foto (astratta)
+│   ├── immagini-indexeddb.ts unica implementazione, unico file che usa IndexedDB
+│   ├── foto.ts             riduzione delle foto prima del salvataggio
+│   ├── seed.ts             primo caricamento delle ricette di esempio
     │   ├── sessione.ts         sessione della modalità Cucina
     │   ├── suono.ts            bip Web Audio, vibrazione, schermo acceso
     │   ├── viste.ts            pezzi di interfaccia lato client
@@ -354,6 +382,8 @@ telefono, *Impostazioni → Ricarica le ricette di esempio*).
 | Ogni testo dell'interfaccia | `src/i18n/it.json` (non ci sono stringhe nei componenti) |
 | Colori, tipografia, spaziature | `src/styles/global.css`, blocco `:root` (e i due blocchi del tema scuro) |
 | Ricette di esempio | `src/content/ricette/*.md` — cancellale tutte se vuoi partire da zero |
+| Colori e tipi di bollicine dei vini | `COLORI_VINO` / `BOLLICINE` in `src/lib/tipi.ts` + etichette in `it.json` |
+| Dimensione a cui vengono ridotte le foto | `LATO_MASSIMO` e `QUALITA` in `src/lib/foto.ts` |
 | Reparti del supermercato e loro ordine | `REPARTI` in `src/lib/tipi.ts` + etichette in `it.json` → `reparti` |
 | Soglie dei filtri (cosa è "attesa lunga", "tanti passaggi") | `SOGLIE` in `src/lib/filtri.ts` |
 | Ordine con cui gli ingredienti vengono elencati | `GRUPPI` e le liste di parole in `src/lib/ordine.ts` |
@@ -364,6 +394,21 @@ telefono, *Impostazioni → Ricarica le ricette di esempio*).
 | Versione mostrata nelle impostazioni | `src/lib/versione.ts` |
 
 ---
+
+## Dove stanno le foto
+
+Le foto dei vini **non** possono stare dove stanno ricette e schede: `localStorage` tiene
+solo testo e si ferma attorno ai 5 MB, meno di una singola foto di telefono. Stanno in
+**IndexedDB**, dietro `src/lib/immagini.ts`, con la stessa regola dell'archivio dati:
+l'interfaccia non nomina la tecnologia, l'implementazione è un file solo
+(`immagini-indexeddb.ts`, l'unico che può nominare `indexedDB`).
+
+Prima di essere salvata, ogni foto viene **ridotta sul dispositivo** a 1400 px di lato
+lungo e ricompressa in JPEG (`src/lib/foto.ts`): una foto da 5 MB diventa qualche decina
+di kB. Senza questo passaggio cento bottiglie riempirebbero la memoria del telefono.
+
+Cancellando un vino viene cancellata anche la sua foto; *Impostazioni → Applicazione*
+mostra quante foto ci sono e quanto occupano.
 
 ## Cambiare tecnologia di storage
 
@@ -456,5 +501,12 @@ BASE_PATH=/ node scripts/check-pages.mjs --base http://localhost:4321/
 - **L'ordine automatico degli ingredienti è un'euristica**, non capisce la ricetta: guarda il
   reparto, l'unità e alcune parole chiave. Si applica solo al primo salvataggio; dopo,
   l'ordine è quello che decidi tu nell'editor.
-- **Le ricette non hanno foto**: le schede mostrano titolo e caratteristiche. È una scelta,
-  vedi la nota su immagini e video in `PLAN.md`.
+- **Le ricette non hanno foto**: le schede mostrano titolo e caratteristiche. Le foto ci
+  sono invece per i vini, dove servono a riconoscere l'etichetta.
+- **Le foto dei vini non entrano nell'esportazione**: il file JSON contiene ricette e
+  schede dei vini, non i file binari. Cambiando telefono i vini si ritrovano, le loro foto
+  no. Le foto stanno in IndexedDB, nello spazio del sito, e si cancellano solo cancellando
+  il vino o azzerando i dati.
+- **La cantina parte sempre dai filtri**, anche tornando indietro da una scheda: i valori
+  dell'ultima ricerca restano compilati, ma i risultati si rivedono toccando Cerca. È
+  voluto, ed è il comportamento chiesto.

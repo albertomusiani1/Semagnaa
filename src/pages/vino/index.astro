@@ -1,0 +1,140 @@
+---
+import Base from '../../layouts/Base.astro';
+import Icona from '../../components/Icona.astro';
+import { T } from '../../i18n';
+import { PERCORSI } from '../../lib/percorsi';
+---
+
+<Base titolo={T.vini.titolo}>
+  <p><a class="piccolo" href={PERCORSI.vini}>&larr; {T.vini.titolo}</a></p>
+
+  <div id="messaggio" class="messaggio" role="status" hidden></div>
+
+  <article id="vino" hidden>
+    <figure class="foto-vino" id="figura"></figure>
+
+    <h1 id="nome">{T.stati.caricamento}</h1>
+    <p class="tenue" id="cantina"></p>
+
+    <p class="scheda__meta" id="etichette"></p>
+
+    <div class="gruppo-bottoni spazio-sotto">
+      <button class="bottone bottone--secondario bottone--icona" type="button" id="preferito" aria-pressed="false">
+        <Icona nome="stella" dimensione={20} />
+        <span class="solo-lettori-schermo" id="preferito-testo">{T.vino.preferito}</span>
+      </button>
+      <a class="bottone bottone--secondario" id="modifica" href={PERCORSI.modificaVino}>
+        <Icona nome="matita" dimensione={20} />
+        {T.azioni.modifica}
+      </a>
+      <button class="bottone bottone--pericolo bottone--icona" type="button" id="elimina" aria-label={T.azioni.elimina}>
+        <Icona nome="cestino" dimensione={20} />
+      </button>
+    </div>
+
+    <ul class="dati-ricetta" id="dati"></ul>
+
+    <section id="sezione-gusto" hidden>
+      <h2>{T.vino.gusto}</h2>
+      <p id="gusto"></p>
+    </section>
+
+    <!-- Le note lunghe stanno solo qui: nell'elenco non compaiono. -->
+    <section id="sezione-descrizione" hidden>
+      <h2>{T.vino.descrizione}</h2>
+      <p id="descrizione"></p>
+    </section>
+  </article>
+
+  <dialog id="dialogo-elimina" aria-labelledby="dialogo-elimina-titolo">
+    <h2 id="dialogo-elimina-titolo">{T.vino.eliminaTitolo}</h2>
+    <p>{T.vino.eliminaTesto}</p>
+    <div class="gruppo-bottoni">
+      <button class="bottone bottone--pericolo" type="button" id="conferma-elimina">{T.azioni.confermaElimina}</button>
+      <button class="bottone bottone--secondario" type="button" id="annulla-elimina">{T.azioni.annulla}</button>
+    </div>
+  </dialog>
+</Base>
+
+<script>
+  import { T } from '../../i18n';
+  import { archivio } from '../../lib/archivio';
+  import { immagini } from '../../lib/immagini';
+  import { el, svuota, trova } from '../../lib/dom';
+  import { messaggioVuoto } from '../../lib/viste';
+  import { etichetteVino, mostraFoto, segnapostoBottiglia } from '../../lib/viste-vino';
+  import { PERCORSI, parametro, urlModificaVino } from '../../lib/percorsi';
+  import type { Vino } from '../../lib/tipi';
+
+  const id = parametro('id');
+  const messaggio = trova('#messaggio');
+  const esito = id === null ? null : await archivio.leggiVino(id);
+  const vino: Vino | null = esito !== null && esito.ok ? esito.dato : null;
+
+  if (vino === null) {
+    messaggio.hidden = false;
+    messaggio.dataset['tipo'] = 'errore';
+    svuota(messaggio);
+    messaggio.append(messaggioVuoto(T.vino.nonTrovato, T.vino.nonTrovatoAiuto));
+  } else {
+    const scheda = vino;
+    trova('#vino').hidden = false;
+    document.title = `${scheda.nome} · ${T.app.nome}`;
+    trova('#nome').textContent = scheda.nome;
+    trova('#cantina').textContent = scheda.cantina;
+
+    const figura = trova('#figura');
+    figura.append(segnapostoBottiglia(scheda.colore));
+    void mostraFoto(scheda, figura, `${scheda.nome} — ${scheda.cantina}`);
+
+    const etichette = trova('#etichette');
+    svuota(etichette);
+    etichette.append(...etichetteVino(scheda));
+
+    const dati = trova('#dati');
+    svuota(dati);
+    const provenienza = [scheda.regione, scheda.paese].filter((p) => p !== '').join(', ');
+    if (provenienza !== '') dati.append(el('li', {}, [`${T.vino.provenienza}: ${provenienza}`]));
+    dati.append(el('li', {}, [`${T.vino.annata}: ${scheda.annata ?? T.vino.senzaAnnata}`]));
+    if (scheda.gradazione !== undefined) {
+      dati.append(el('li', {}, [`${T.vino.gradazione}: ${String(scheda.gradazione).replace('.', ',')}%`]));
+    }
+
+    if (scheda.gusto !== '') {
+      trova('#sezione-gusto').hidden = false;
+      trova('#gusto').textContent = scheda.gusto;
+    }
+    if (scheda.descrizione !== '') {
+      trova('#sezione-descrizione').hidden = false;
+      trova('#descrizione').textContent = scheda.descrizione;
+    }
+
+    trova<HTMLAnchorElement>('#modifica').href = urlModificaVino(scheda.id);
+
+    const bottonePreferito = trova<HTMLButtonElement>('#preferito');
+    const testoPreferito = trova('#preferito-testo');
+    function aggiornaPreferito(): void {
+      bottonePreferito.setAttribute('aria-pressed', String(scheda.preferito));
+      testoPreferito.textContent = scheda.preferito ? T.vino.nonPreferito : T.vino.preferito;
+      bottonePreferito.classList.toggle('bottone--accento', scheda.preferito);
+    }
+    aggiornaPreferito();
+    bottonePreferito.addEventListener('click', async () => {
+      scheda.preferito = !scheda.preferito;
+      scheda.aggiornatoIl = new Date().toISOString();
+      await archivio.salvaVino(scheda);
+      aggiornaPreferito();
+    });
+
+    const dialogo = trova<HTMLDialogElement>('#dialogo-elimina');
+    trova('#elimina').addEventListener('click', () => dialogo.showModal());
+    trova('#annulla-elimina').addEventListener('click', () => dialogo.close());
+    trova('#conferma-elimina').addEventListener('click', async () => {
+      // Via anche la foto: altrimenti resterebbe a occupare spazio per sempre.
+      if (scheda.fotoId !== undefined) await immagini.cancella(scheda.fotoId);
+      await archivio.cancellaVino(scheda.id);
+      dialogo.close();
+      location.href = PERCORSI.vini;
+    });
+  }
+</script>

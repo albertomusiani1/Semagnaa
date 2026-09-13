@@ -16,6 +16,14 @@ await mkdir(OUT, { recursive: true });
 const PAGINE = [
   ['home', ''],
   ['ricette', 'ricette/'],
+  ['vini', 'vini/'],
+  ['vini-risultati', 'vini/', async (pagina) => {
+    await pagina.waitForSelector('#ricerca');
+    await pagina.click('#cerca');
+    await pagina.waitForSelector('.bottiglia', { timeout: 5000 });
+  }],
+  ['vino', 'vino/?id=marchesi-di-barolo-barolo-cannubi'],
+  ['vino-modifica', 'vino/modifica/?id=marchesi-di-barolo-barolo-cannubi'],
   ['ricetta', 'ricetta/?id=focaccia-genovese-a-lunga-lievitazione-in-teglia'],
   ['cucina', 'cucina/?id=ragu-alla-bolognese-della-domenica'],
   ['modifica', 'modifica/?id=tiramisu-classico'],
@@ -43,12 +51,38 @@ await p.locator('#scelta-ragu-alla-bolognese-della-domenica').check();
 await p.locator('#scelta-insalata-di-finocchi-e-arance').check();
 await p.waitForTimeout(200);
 
+// Qualche vino in cantina, altrimenti le schermate della cantina sono vuote
+// e non dicono niente sull'impaginazione.
+await p.evaluate(() => {
+  const adesso = new Date().toISOString();
+  const vino = (dati) => ({
+    paese: 'Italia',
+    gusto: 'Secco, di frutta rossa, molto lungo al palato.',
+    descrizione: 'Nota lunga che deve comparire solo nella scheda del singolo vino.',
+    preferito: false,
+    creatoIl: adesso,
+    aggiornatoIl: adesso,
+    ...dati,
+  });
+  localStorage.setItem(
+    'semagnaa:vini',
+    JSON.stringify([
+      vino({ id: 'marchesi-di-barolo-barolo-cannubi', nome: 'Barolo Cannubi', cantina: 'Marchesi di Barolo', regione: 'Piemonte', colore: 'rosso', bollicine: 'fermo', annata: 2016, preferito: true }),
+      vino({ id: 'ca-del-bosco-franciacorta-brut', nome: 'Franciacorta Brut', cantina: 'Ca del Bosco', regione: 'Lombardia', colore: 'bianco', bollicine: 'spumante', annata: 2020 }),
+      vino({ id: 'valle-reale-cerasuolo', nome: 'Cerasuolo d Abruzzo', cantina: 'Valle Reale', regione: 'Abruzzo', colore: 'rosato', bollicine: 'fermo', annata: 2022 }),
+      vino({ id: 'paltrinieri-lambrusco-di-sorbara', nome: 'Lambrusco di Sorbara', cantina: 'Paltrinieri', regione: 'Emilia-Romagna', colore: 'rosso', bollicine: 'frizzante', annata: 2023 }),
+    ]),
+  );
+  localStorage.removeItem('semagnaa:stato:vini-filtri');
+});
+
 const problemi = [];
 const righe = [];
 for (const larghezza of LARGHEZZE) {
   await p.setViewportSize({ width: larghezza, height: larghezza < 700 ? 800 : 900 });
-  for (const [nome, percorso] of PAGINE) {
+  for (const [nome, percorso, azione] of PAGINE) {
     await p.goto(`${BASE}${percorso}`, { waitUntil: 'networkidle' });
+    if (typeof azione === 'function') await azione(p);
     await p.waitForTimeout(300);
     const misure = await p.evaluate(() => ({
       scroll: document.documentElement.scrollWidth,

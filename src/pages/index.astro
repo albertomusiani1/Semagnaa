@@ -41,6 +41,20 @@ import { PERCORSI, urlModifica } from '../lib/percorsi';
       <li class="scheda">
         <div class="scheda__corpo">
           <h3 class="scheda__titolo">
+            <a href={PERCORSI.vini}>{T.home.vaiInCantina}</a>
+          </h3>
+          <p class="scheda__descrizione">{T.home.vaiInCantinaDettaglio}</p>
+          <p class="scheda__meta">
+            <a class="bottone bottone--secondario" href={PERCORSI.vini}>
+              <Icona nome="bottiglia" dimensione={20} />
+              {T.vini.titolo}
+            </a>
+          </p>
+        </div>
+      </li>
+      <li class="scheda">
+        <div class="scheda__corpo">
+          <h3 class="scheda__titolo">
             <a href={urlModifica()}>{T.home.creaRicetta}</a>
           </h3>
           <p class="scheda__descrizione">{T.home.creaRicettaDettaglio}</p>

@@ -1,0 +1,289 @@
+---
+import Base from '../../layouts/Base.astro';
+import Icona from '../../components/Icona.astro';
+import { T } from '../../i18n';
+import { BOLLICINE, COLORI_VINO } from '../../lib/tipi';
+import { urlModificaVino } from '../../lib/percorsi';
+---
+
+<Base titolo={T.vini.titolo}>
+  <div class="sezione__intestazione">
+    <h1>{T.vini.titolo}</h1>
+    <a class="bottone bottone--secondario" href={urlModificaVino()}>
+      <Icona nome="piu" dimensione={20} />
+      {T.vini.aggiungi}
+    </a>
+  </div>
+
+  <p class="tenue piccolo" id="quanti"></p>
+
+  <!-- Cantina vuota: niente filtri da mostrare, solo l'invito. -->
+  <div id="vuota" hidden>
+    <div class="vuoto">
+      <p>{T.vini.cantinaVuota}</p>
+      <p class="piccolo">{T.vini.cantinaVuotaAiuto}</p>
+      <a class="bottone bottone--grande" href={urlModificaVino()}>
+        <Icona nome="piu" dimensione={22} />
+        {T.vini.aggiungi}
+      </a>
+    </div>
+  </div>
+
+  <!-- Passo 1: solo i filtri. I risultati compaiono dopo "Cerca". -->
+  <form class="ricerca-vini" id="ricerca" hidden>
+    <p class="tenue">{T.vini.aiuto}</p>
+
+    <div class="campo">
+      <label for="testo">{T.vini.campoTesto}</label>
+      <input type="search" id="testo" name="testo" autocomplete="off" />
+    </div>
+
+    <div class="riga-campi">
+      <div class="campo">
+        <label for="paese">{T.vini.campoPaese}</label>
+        <select id="paese" name="paese"><option value="">{T.vini.tutti}</option></select>
+      </div>
+      <div class="campo">
+        <label for="regione">{T.vini.campoRegione}</label>
+        <select id="regione" name="regione"><option value="">{T.vini.tutte}</option></select>
+      </div>
+      <div class="campo">
+        <label for="cantina">{T.vini.campoCantina}</label>
+        <select id="cantina" name="cantina"><option value="">{T.vini.tutte}</option></select>
+      </div>
+    </div>
+
+    <fieldset>
+      <legend>{T.vini.colore}</legend>
+      <ul class="filtri" data-gruppo="colore">
+        {
+          COLORI_VINO.map((colore) => (
+            <li>
+              <label class="filtri__voce">
+                <input type="checkbox" name="colore[]" value={colore} />
+                <span class="pastiglia-colore" data-colore={colore}>
+                  {T.colori[colore]}
+                </span>
+              </label>
+            </li>
+          ))
+        }
+      </ul>
+    </fieldset>
+
+    <fieldset>
+      <legend>{T.vini.bollicine}</legend>
+      <ul class="filtri" data-gruppo="bollicine">
+        {
+          BOLLICINE.map((tipo) => (
+            <li>
+              <label class="filtri__voce">
+                <input type="checkbox" name="bollicine[]" value={tipo} />
+                <span>{T.bollicine[tipo]}</span>
+              </label>
+            </li>
+          ))
+        }
+      </ul>
+    </fieldset>
+
+    <fieldset>
+      <legend>{T.vini.annata}</legend>
+      <div class="riga-campi">
+        <div class="campo">
+          <label for="annata-da">{T.vini.annataDa}</label>
+          <input type="number" id="annata-da" name="annata-da" min="1900" max="2100" step="1" />
+        </div>
+        <div class="campo">
+          <label for="annata-a">{T.vini.annataA}</label>
+          <input type="number" id="annata-a" name="annata-a" min="1900" max="2100" step="1" />
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="interruttore">
+      <input type="checkbox" id="preferiti" name="preferiti" />
+      <label for="preferiti">{T.vini.soloPreferiti}</label>
+    </div>
+
+    <div class="gruppo-bottoni">
+      <button class="bottone bottone--grande bottone--accento" type="submit" id="cerca">
+        <Icona nome="filtro" dimensione={22} />
+        {T.vini.cerca}
+      </button>
+      <button class="bottone bottone--secondario bottone--grande" type="button" id="azzera">{T.vini.azzera}</button>
+    </div>
+  </form>
+
+  <!-- Passo 2: i risultati, come in un negozio. -->
+  <section id="risultati" hidden aria-labelledby="riepilogo-testo">
+    <div class="riepilogo-ricerca">
+      <p class="riepilogo-ricerca__testo" id="riepilogo-testo" aria-live="polite"></p>
+      <button class="bottone bottone--secondario" type="button" id="cambia-filtri">
+        <Icona nome="filtro" dimensione={20} />
+        {T.vini.cambiaFiltri}
+      </button>
+    </div>
+    <div id="vetrina"></div>
+  </section>
+</Base>
+
+<script>
+  import { T, interpola } from '../../i18n';
+  import { archivio } from '../../lib/archivio';
+  import { el, svuota, trova, tutti } from '../../lib/dom';
+  import { messaggioVuoto } from '../../lib/viste';
+  import { vetrinaVini } from '../../lib/viste-vino';
+  import { normalizzaNome } from '../../lib/testo';
+  import {
+    FILTRI_VINO_VUOTI,
+    applicaFiltriVino,
+    filtriVinoAttivi,
+    ordinaVini,
+    regioniDi,
+    valoriDistinti,
+    type FiltriVino,
+  } from '../../lib/vini';
+  import type { Bollicine, ColoreVino } from '../../lib/tipi';
+
+  const esitoVini = await archivio.leggiVini();
+  const vini = ordinaVini(esitoVini.ok ? esitoVini.dato : []);
+
+  const quanti = trova('#quanti');
+  const modulo = trova<HTMLFormElement>('#ricerca');
+  const risultati = trova('#risultati');
+  const contenitore = trova('#vetrina');
+  const riepilogo = trova('#riepilogo-testo');
+
+  quanti.textContent =
+    vini.length === 1 ? T.vini.unoInCantina : interpola(T.vini.inCantina, { n: vini.length });
+
+  if (vini.length === 0) {
+    trova('#vuota').hidden = false;
+  } else {
+    modulo.hidden = false;
+  }
+
+  // --- elenchi dei filtri, costruiti da quello che c'è in cantina --------
+  const campoPaese = trova<HTMLSelectElement>('#paese');
+  const campoRegione = trova<HTMLSelectElement>('#regione');
+  const campoCantina = trova<HTMLSelectElement>('#cantina');
+
+  function riempi(campo: HTMLSelectElement, valori: readonly string[], etichettaTutti: string, scelto: string): void {
+    svuota(campo);
+    campo.append(el('option', { value: '' }, [etichettaTutti]));
+    for (const valore of valori) campo.append(el('option', { value: valore }, [valore]));
+    campo.value = valori.includes(scelto) ? scelto : '';
+  }
+
+  riempi(campoPaese, valoriDistinti(vini, 'paese'), T.vini.tutti, '');
+  riempi(campoRegione, regioniDi(vini, null), T.vini.tutte, '');
+  riempi(campoCantina, valoriDistinti(vini, 'cantina'), T.vini.tutte, '');
+
+  // Cambiando stato, le regioni si restringono a quelle di quello stato.
+  campoPaese.addEventListener('change', () => {
+    const paese = campoPaese.value === '' ? null : campoPaese.value;
+    riempi(campoRegione, regioniDi(vini, paese), T.vini.tutte, campoRegione.value);
+  });
+
+  // --- lettura e scrittura dei filtri ------------------------------------
+  function spuntati(nome: string): string[] {
+    return tutti<HTMLInputElement>(`input[name="${nome}"]`, modulo)
+      .filter((campo) => campo.checked)
+      .map((campo) => campo.value);
+  }
+
+  function numero(selettore: string): number | null {
+    const campo = trova<HTMLInputElement>(selettore);
+    const valore = Number(campo.value);
+    return campo.value.trim() === '' || !Number.isFinite(valore) ? null : Math.round(valore);
+  }
+
+  function leggiFiltri(): FiltriVino {
+    return {
+      testo: trova<HTMLInputElement>('#testo').value,
+      paese: campoPaese.value === '' ? null : campoPaese.value,
+      regione: campoRegione.value === '' ? null : campoRegione.value,
+      cantina: campoCantina.value === '' ? null : campoCantina.value,
+      colori: spuntati('colore[]') as ColoreVino[],
+      bollicine: spuntati('bollicine[]') as Bollicine[],
+      annataDa: numero('#annata-da'),
+      annataA: numero('#annata-a'),
+      soloPreferiti: trova<HTMLInputElement>('#preferiti').checked,
+    };
+  }
+
+  function scriviFiltri(filtri: FiltriVino): void {
+    trova<HTMLInputElement>('#testo').value = filtri.testo;
+    campoPaese.value = filtri.paese ?? '';
+    riempi(campoRegione, regioniDi(vini, filtri.paese), T.vini.tutte, filtri.regione ?? '');
+    campoCantina.value = filtri.cantina ?? '';
+    for (const campo of tutti<HTMLInputElement>('input[name="colore[]"]', modulo)) {
+      campo.checked = filtri.colori.includes(campo.value as ColoreVino);
+    }
+    for (const campo of tutti<HTMLInputElement>('input[name="bollicine[]"]', modulo)) {
+      campo.checked = filtri.bollicine.includes(campo.value as Bollicine);
+    }
+    trova<HTMLInputElement>('#annata-da').value = filtri.annataDa === null ? '' : String(filtri.annataDa);
+    trova<HTMLInputElement>('#annata-a').value = filtri.annataA === null ? '' : String(filtri.annataA);
+    trova<HTMLInputElement>('#preferiti').checked = filtri.soloPreferiti;
+  }
+
+  /** Riepilogo leggibile dei filtri usati, per la barra sopra i risultati. */
+  function descriviFiltri(filtri: FiltriVino): string {
+    const pezzi: string[] = [];
+    if (filtri.testo.trim() !== '') pezzi.push(`"${filtri.testo.trim()}"`);
+    if (filtri.paese !== null) pezzi.push(filtri.paese);
+    if (filtri.regione !== null) pezzi.push(filtri.regione);
+    if (filtri.cantina !== null) pezzi.push(filtri.cantina);
+    for (const colore of filtri.colori) pezzi.push(T.colori[colore]);
+    for (const tipo of filtri.bollicine) pezzi.push(T.bollicine[tipo]);
+    if (filtri.annataDa !== null || filtri.annataA !== null) {
+      pezzi.push(`${filtri.annataDa ?? '…'}–${filtri.annataA ?? '…'}`);
+    }
+    if (filtri.soloPreferiti) pezzi.push(T.vini.soloPreferiti);
+    return pezzi.length === 0 ? T.vini.nessunFiltro : pezzi.join(' · ');
+  }
+
+  // I filtri dell'ultima ricerca restano pronti, ma la pagina si apre
+  // sempre dai filtri: i risultati arrivano solo dopo "Cerca".
+  const salvati = await archivio.leggiStato<FiltriVino | null>('vini-filtri', null);
+  if (salvati.ok && salvati.dato !== null) scriviFiltri({ ...FILTRI_VINO_VUOTI, ...salvati.dato });
+
+  function mostraRisultati(filtri: FiltriVino): void {
+    const trovati = applicaFiltriVino(vini, filtri, normalizzaNome);
+    modulo.hidden = true;
+    risultati.hidden = false;
+
+    const quantiTrovati =
+      trovati.length === 1 ? T.vini.unRisultato : interpola(T.vini.risultati, { n: trovati.length });
+    const descrizione = filtriVinoAttivi(filtri) === 0 ? T.vini.nessunFiltro : descriviFiltri(filtri);
+    riepilogo.textContent = `${quantiTrovati} — ${interpola(T.vini.riepilogoFiltri, { filtri: descrizione })}`;
+
+    svuota(contenitore);
+    contenitore.append(
+      trovati.length === 0
+        ? messaggioVuoto(T.vini.nessunRisultato, T.vini.nessunRisultatoAiuto)
+        : vetrinaVini(trovati),
+    );
+    risultati.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
+  modulo.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const filtri = leggiFiltri();
+    await archivio.scriviStato('vini-filtri', filtri);
+    mostraRisultati(filtri);
+  });
+
+  trova('#cambia-filtri').addEventListener('click', () => {
+    risultati.hidden = true;
+    modulo.hidden = false;
+    modulo.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+
+  trova('#azzera').addEventListener('click', async () => {
+    scriviFiltri(FILTRI_VINO_VUOTI);
+    await archivio.rimuoviStato('vini-filtri');
+  });
+</script>

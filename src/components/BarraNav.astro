@@ -9,6 +9,7 @@ import { PERCORSI } from '../lib/percorsi';
 const voci = [
   { href: PERCORSI.home, etichetta: T.nav.home, icona: 'casa' as const },
   { href: PERCORSI.ricette, etichetta: T.nav.ricette, icona: 'libro' as const },
+  { href: PERCORSI.vini, etichetta: T.nav.vini, icona: 'bottiglia' as const },
   { href: PERCORSI.spesa, etichetta: T.nav.spesa, icona: 'carrello' as const },
   { href: PERCORSI.impostazioni, etichetta: T.nav.impostazioni, icona: 'ingranaggio' as const },
 ];
@@ -16,6 +17,8 @@ const voci = [
 const attuale = Astro.url.pathname;
 function eAttiva(href: string): boolean {
   if (href === PERCORSI.home) return attuale === PERCORSI.home;
+  // Il dettaglio di un vino sta sotto /vino/: la voce accesa resta "Vini".
+  if (href === PERCORSI.vini) return attuale.startsWith(PERCORSI.vini) || attuale.startsWith(PERCORSI.vino);
   return attuale.startsWith(href);
 }
 ---
