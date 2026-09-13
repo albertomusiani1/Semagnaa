@@ -10,8 +10,19 @@
  * I messaggi qui sono chiavi di `src/i18n/it.json` (`errori.*`), non testo
  * di interfaccia: chi mostra l'errore lo traduce.
  */
-import type { Categoria, Difficolta, Ingrediente, Passaggio, Reparto, Ricetta, Unita } from './tipi.ts';
-import { CATEGORIE, DIFFICOLTA, LIMITI, REPARTI, UNITA } from './tipi.ts';
+import type {
+  Bollicine,
+  Categoria,
+  ColoreVino,
+  Difficolta,
+  Ingrediente,
+  Passaggio,
+  Reparto,
+  Ricetta,
+  Unita,
+  Vino,
+} from './tipi.ts';
+import { BOLLICINE, CATEGORIE, COLORI_VINO, DIFFICOLTA, LIMITI, REPARTI, UNITA } from './tipi.ts';
 import type { Esito } from './esito.ts';
 import { errore, ok } from './esito.ts';
 import { slugifica } from './testo.ts';
@@ -164,6 +175,18 @@ function slugLibero(titolo: string, esistenti: readonly string[]): string {
   return `${base}-${n}`;
 }
 
+/** Valida l'elenco dei vini dentro un file di esportazione. */
+export function validaViniImportati(grezzo: unknown): Esito<Vino[]> {
+  if (!Array.isArray(grezzo)) return ok([]);
+  const vini: Vino[] = [];
+  for (const voce of grezzo) {
+    const esito = validaVino(voce, vini.map((v) => v.id));
+    if (!esito.ok) return errore(esito.errore);
+    vini.push(esito.dato);
+  }
+  return ok(vini);
+}
+
 /** Valida un file di esportazione (array di ricette o oggetto con `ricette`). */
 export function validaImportazione(testoJson: string): Esito<Ricetta[]> {
   let grezzo: unknown;
@@ -187,4 +210,73 @@ export function validaImportazione(testoJson: string): Esito<Ricetta[]> {
     ricette.push(esito.dato);
   }
   return ok(ricette);
+}
+
+/* -------------------------------------------------------------------------
+ * Vini
+ * ---------------------------------------------------------------------- */
+
+/** Valida e normalizza un vino arrivato dall'editor o da un file importato. */
+export function validaVino(grezzo: unknown, idEsistenti: readonly string[] = []): Esito<Vino> {
+  if (!eOggetto(grezzo)) return errore('errori.vinoNonValido');
+
+  const nome = stringa(grezzo['nome'], LIMITI.nomeVinoMax);
+  if (nome === null) return errore('errori.nomeVinoObbligatorio');
+
+  const cantina = stringa(grezzo['cantina'], LIMITI.cantinaMax);
+  if (cantina === null) return errore('errori.cantinaObbligatoria');
+
+  const colore = inElenco<ColoreVino>(grezzo['colore'], COLORI_VINO);
+  if (colore === null) return errore('errori.coloreNonValido');
+
+  const bollicine = inElenco<Bollicine>(grezzo['bollicine'], BOLLICINE);
+  if (bollicine === null) return errore('errori.bollicineNonValide');
+
+  const paeseGrezzo = typeof grezzo['paese'] === 'string' ? grezzo['paese'].trim() : '';
+  const regioneGrezza = typeof grezzo['regione'] === 'string' ? grezzo['regione'].trim() : '';
+  if (paeseGrezzo.length > LIMITI.paeseMax || regioneGrezza.length > LIMITI.regioneMax) {
+    return errore('errori.provenienzaTroppoLunga');
+  }
+
+  const gusto = typeof grezzo['gusto'] === 'string' ? grezzo['gusto'].trim() : '';
+  if (gusto.length > LIMITI.gustoMax) return errore('errori.gustoTroppoLungo');
+
+  const descrizione = typeof grezzo['descrizione'] === 'string' ? grezzo['descrizione'].trim() : '';
+  if (descrizione.length > LIMITI.descrizioneVinoMax) return errore('errori.descrizioneVinoTroppoLunga');
+
+  const vino: Vino = {
+    id: '',
+    nome,
+    cantina,
+    paese: paeseGrezzo,
+    regione: regioneGrezza,
+    colore,
+    bollicine,
+    gusto,
+    descrizione,
+    preferito: grezzo['preferito'] === true,
+    creatoIl: '',
+    aggiornatoIl: '',
+  };
+
+  if (grezzo['annata'] !== undefined && grezzo['annata'] !== null && grezzo['annata'] !== '') {
+    const annata = numeroPositivo(grezzo['annata'], LIMITI.annataMax);
+    if (annata === null || annata < LIMITI.annataMin) return errore('errori.annataNonValida');
+    vino.annata = Math.round(annata);
+  }
+  if (grezzo['gradazione'] !== undefined && grezzo['gradazione'] !== null && grezzo['gradazione'] !== '') {
+    const gradazione = numeroPositivo(grezzo['gradazione'], 30);
+    if (gradazione === null) return errore('errori.gradazioneNonValida');
+    vino.gradazione = gradazione;
+  }
+  const fotoId = typeof grezzo['fotoId'] === 'string' ? grezzo['fotoId'].trim() : '';
+  if (fotoId !== '') vino.fotoId = fotoId.slice(0, 80);
+
+  const idGrezzo = typeof grezzo['id'] === 'string' ? grezzo['id'].trim() : '';
+  vino.id = idGrezzo === '' ? slugLibero(`${cantina} ${nome}`, idEsistenti) : slugifica(idGrezzo);
+
+  const adesso = new Date().toISOString();
+  vino.creatoIl = typeof grezzo['creatoIl'] === 'string' && grezzo['creatoIl'] !== '' ? grezzo['creatoIl'] : adesso;
+  vino.aggiornatoIl = adesso;
+  return ok(vino);
 }

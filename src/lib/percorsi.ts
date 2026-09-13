@@ -25,6 +25,9 @@ export const PERCORSI = {
   ricetta: percorso('ricetta'),
   cucina: percorso('cucina'),
   modifica: percorso('modifica'),
+  vini: percorso('vini'),
+  vino: percorso('vino'),
+  modificaVino: percorso('vino/modifica'),
   spesa: percorso('spesa'),
   dispensa: percorso('spesa/dispensa'),
   lista: percorso('spesa/lista'),
@@ -39,6 +42,14 @@ export function urlRicetta(id: string): string {
 
 export function urlCucina(id: string): string {
   return `${PERCORSI.cucina}?id=${encodeURIComponent(id)}`;
+}
+
+export function urlVino(id: string): string {
+  return `${PERCORSI.vino}?id=${encodeURIComponent(id)}`;
+}
+
+export function urlModificaVino(id?: string): string {
+  return id === undefined ? PERCORSI.modificaVino : `${PERCORSI.modificaVino}?id=${encodeURIComponent(id)}`;
 }
 
 export function urlModifica(id?: string): string {

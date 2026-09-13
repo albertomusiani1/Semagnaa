@@ -12,6 +12,12 @@ Piano di lavoro operativo, memoria della sessione. Aggiornato a ogni fase comple
 - 2026-09-01 19:10 — PWA completa (manifest generato, service worker + precache), `astro check` 0/0/0.
 - 2026-09-01 19:30 — **Tutte le 18 verifiche della Definizione di Fatto passano.** Vedi `RESULTS.md`.
 - 2026-09-01 19:35 — README, RESULTS.md, workflow GitHub Pages. Prima versione completa.
+- 2026-09-13 13:55 — **Quarto giro**: sezione **Cantina**. Catalogo dei vini con ricerca a
+  filtri (stato, regione, cantina, colore, bollicine, annata, preferiti), risultati a
+  griglia da negozio che compaiono solo dopo "Cerca", foto delle bottiglie in IndexedDB
+  ridotte sul dispositivo, note lunghe visibili solo nella scheda del singolo vino.
+  82 test, 26/26 passi sulla cantina, Lighthouse 99/100/100/100.
+- 2026-09-02 07:50 — **Terzo giro**: consegna degli aggiornamenti (vedi fase 13).
 - 2026-09-01 20:55 — **Secondo giro** su richiesta: palette luminosa, schede senza immagine
   né descrizione, pannello filtri richiudibile (categoria, difficoltà, durata, attese,
   passaggi), cottura in ore e minuti, tag suggeriti, ingredienti con ricerca fra quelli già
@@ -124,6 +130,21 @@ Piano di lavoro operativo, memoria della sessione. Aggiornato a ogni fase comple
       cache e ricarica* (via di fuga che non tocca i dati)
 - [x] `scripts/verifica-aggiornamento.mjs`: simula una pubblicazione e verifica banner,
       ricarica, cancellazione della cache vecchia e sopravvivenza dei dati — 11/11
+
+### Fase 14 — Cantina (sezione vini)
+- [x] Modello `Vino` in `tipi.ts`: colore e bollicine separati, provenienza libera
+- [x] Archivio esteso ai vini (stesso schema delle ricette)
+- [x] `src/lib/immagini.ts` + `immagini-indexeddb.ts`: foto in IndexedDB dietro interfaccia
+- [x] `src/lib/foto.ts`: riduzione a 1400 px e ricompressione JPEG sul dispositivo
+- [x] `src/lib/vini.ts` puro e testato: filtri, valori distinti, ordinamento
+- [x] `validaVino` con i suoi test
+- [x] `/vini/`: prima solo i filtri, poi "Cerca", poi la vetrina a due colonne
+- [x] `/vino/?id=`: scheda con foto grande, gusto e **note lunghe solo qui**
+- [x] `/vino/modifica/`: foto da fotocamera o galleria, suggerimenti da quanto già inserito
+- [x] Voce "Vini" nella barra di navigazione e scorciatoia in home
+- [x] Impostazioni: conteggio vini, numero e peso delle foto, azzeramento che le comprende
+- [x] Esportazione e importazione estese ai vini (foto escluse, limite dichiarato)
+- [x] `scripts/verifica-vini.mjs` (verifica 20) e schermate della cantina nel responsive
 
 ---
 
@@ -295,10 +316,10 @@ Nessuno che blocchi l'uso dell'app. Limiti noti e voluti, documentati nel README
    un vocabolario italiano, sproporzionato qui.
 3. **Screen Wake Lock non esiste su iOS**: lo schermo si può spegnere durante la cottura.
    I timer restano corretti perché calcolati su timestamp assoluti.
-4. **Foto e video nei passaggi: non fatti, per scelta ragionata.** Servirebbero IndexedDB al
-   posto di `localStorage` (il limite di 5 MB non regge nemmeno una foto di telefono),
-   miniature generate su dispositivo, gestione della quota e un'esportazione diversa dal
-   JSON. È un lavoro fattibile ma è un altro capitolo: vedi la nota in fondo a `RESULTS.md`.
+4. **Foto e video nei passaggi delle ricette: ancora non fatti.** Con la cantina è arrivato
+   metà del lavoro previsto (IndexedDB, riduzione delle foto sul dispositivo, gestione
+   dello spazio): riusare lo stesso archivio immagini per i passaggi delle ricette ora
+   costa poco. Restano aperti i video, per i motivi in fondo a `RESULTS.md`.
 5. **Nessuna notifica di sistema**: se l'app è chiusa, alla scadenza non suona niente; alla
    riapertura il timer risulta già scaduto. Servirebbe il permesso notifiche e un push
    server, che l'app per scelta non ha.
@@ -306,3 +327,47 @@ Nessuno che blocchi l'uso dell'app. Limiti noti e voluti, documentati nel README
 7. **L'ordine automatico degli ingredienti è un'euristica** (decisione 18): su un ingrediente
    inusuale può sbagliare gruppo. Si sistema a mano nell'editor o aggiungendo una parola
    chiave in `ordine.ts`.
+
+### Quarto giro (cantina)
+
+23. **Colore e bollicine sono due campi, non un elenco unico.**
+    La richiesta diceva "bianco rosso rosé frizzante fermo", ma sono due dimensioni
+    indipendenti: esiste il bianco fermo e il bianco spumante. Con un elenco unico avrei
+    dovuto scegliere quale delle due dire, e il filtro "tutti i bianchi" sarebbe stato
+    impossibile.
+    *Scartato*: un solo campo con cinque valori.
+
+24. **Gli elenchi di stato, regione e cantina nascono dai vini inseriti.**
+    Una lista precompilata di regioni sarebbe sempre incompleta (e chi beve solo Langhe si
+    troverebbe venti voci inutili). I filtri si costruiscono da `valoriDistinti()`, e
+    scegliendo uno stato le regioni si restringono a quelle di quello stato.
+    *Scartato*: elenco fisso delle regioni italiane.
+
+25. **Le foto stanno in IndexedDB, dietro una seconda interfaccia.**
+    `localStorage` tiene solo testo e si ferma attorno ai 5 MB: una sola foto di telefono
+    lo riempirebbe. `immagini.ts` è l'interfaccia, `immagini-indexeddb.ts` l'unica
+    implementazione e l'unico file che nomina `indexedDB`, esattamente come per i dati.
+    Le ricette e le schede dei vini restano dove stavano: sono testo, e spostarle avrebbe
+    voluto dire migrare dati veri per nessun vantaggio.
+    *Scartato*: migrare tutto a IndexedDB in un colpo solo (rischio sui dati esistenti);
+    salvare le foto come testo base64 (5 MB l'una, memoria piena alla terza bottiglia).
+
+26. **Ogni foto viene ridotta sul dispositivo prima di essere salvata** (1400 px di lato
+    lungo, JPEG 0.82): nel test una foto da 2400×3200 diventa 19 kB. Senza, cento
+    bottiglie riempirebbero la memoria e l'app diventerebbe lenta ad aprirsi.
+
+27. **La cantina si apre sempre dai filtri, anche tornando indietro da una scheda.**
+    È il comportamento chiesto. I valori dell'ultima ricerca restano compilati (sono
+    salvati), ma i risultati richiedono di toccare Cerca.
+    *Scartato*: ripristinare l'ultima ricerca al rientro — più comodo in un caso, ma
+    contro la richiesta e meno prevedibile.
+
+28. **Le foto non entrano nell'esportazione JSON.**
+    Metterle vorrebbe dire base64 dentro il file: un'esportazione da decine di MB,
+    illeggibile e lenta da rigenerare. Vini e ricette si esportano, le foto restano sul
+    dispositivo. È un limite dichiarato nel README: quando servirà, la strada è un
+    archivio zip.
+
+29. **Nessun vino di esempio.** Le ricette di esempio hanno senso (sono un ricettario di
+    partenza), bottiglie finte in una cantina personale no: andrebbero cancellate una per
+    una. La cantina vuota mostra un invito ad aggiungere il primo vino.

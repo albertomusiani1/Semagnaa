@@ -1,0 +1,310 @@
+---
+import Base from '../../layouts/Base.astro';
+import Icona from '../../components/Icona.astro';
+import { T } from '../../i18n';
+import { BOLLICINE, COLORI_VINO } from '../../lib/tipi';
+---
+
+<Base titolo={T.editorVino.titoloNuovo}>
+  <h1 id="titolo-pagina">{T.editorVino.titoloNuovo}</h1>
+  <p class="messaggio" id="messaggio" role="status" hidden></p>
+
+  <form id="modulo" novalidate>
+    <!-- 1. Foto ---------------------------------------------------------- -->
+    <fieldset class="gruppo-campi">
+      <legend><h2>{T.editorVino.sezioneFoto}</h2></legend>
+
+      <figure class="anteprima-foto" id="anteprima"></figure>
+
+      <div class="campo">
+        <label class="bottone bottone--secondario" for="foto">
+          <Icona nome="fotocamera" dimensione={20} />
+          <span id="etichetta-foto">{T.editorVino.scattaFoto}</span>
+        </label>
+        <!-- `capture` apre la fotocamera sul telefono, la galleria altrove. -->
+        <input type="file" id="foto" accept="image/*" capture="environment" class="solo-lettori-schermo" />
+        <span class="campo__aiuto">{T.editorVino.fotoAiuto}</span>
+      </div>
+
+      <button class="bottone bottone--secondario" type="button" id="togli-foto" hidden>
+        {T.editorVino.rimuoviFoto}
+      </button>
+    </fieldset>
+
+    <!-- 2. Il vino ------------------------------------------------------- -->
+    <fieldset class="gruppo-campi">
+      <legend><h2>{T.editorVino.sezioneBase}</h2></legend>
+
+      <div class="campo">
+        <label for="nome">{T.editorVino.campoNome}</label>
+        <input type="text" id="nome" maxlength="90" autocomplete="off" required />
+        <span class="campo__aiuto">{T.editorVino.campoNomeAiuto}</span>
+      </div>
+
+      <div class="campo">
+        <label for="cantina">{T.editorVino.campoCantina}</label>
+        <input type="text" id="cantina" list="cantine-note" maxlength="80" autocomplete="off" required />
+        <datalist id="cantine-note"></datalist>
+      </div>
+
+      <div class="riga-campi">
+        <div class="campo">
+          <label for="paese">{T.editorVino.campoPaese}</label>
+          <input type="text" id="paese" list="paesi-noti" maxlength="60" autocomplete="off" value="Italia" />
+          <datalist id="paesi-noti"></datalist>
+        </div>
+        <div class="campo">
+          <label for="regione">{T.editorVino.campoRegione}</label>
+          <input type="text" id="regione" list="regioni-note" maxlength="60" autocomplete="off" />
+          <datalist id="regioni-note"></datalist>
+        </div>
+      </div>
+      <p class="campo__aiuto">{T.editorVino.campoProvenienzaAiuto}</p>
+
+      <fieldset class="gruppo-filtro">
+        <legend>{T.editorVino.campoColore}</legend>
+        <ul class="filtri">
+          {
+            COLORI_VINO.map((colore, indice) => (
+              <li>
+                <label class="filtri__voce">
+                  <input type="radio" name="colore" value={colore} checked={indice === 0} />
+                  <span class="pastiglia-colore" data-colore={colore}>
+                    {T.colori[colore]}
+                  </span>
+                </label>
+              </li>
+            ))
+          }
+        </ul>
+      </fieldset>
+
+      <fieldset class="gruppo-filtro">
+        <legend>{T.editorVino.campoBollicine}</legend>
+        <ul class="filtri">
+          {
+            BOLLICINE.map((tipo, indice) => (
+              <li>
+                <label class="filtri__voce">
+                  <input type="radio" name="bollicine" value={tipo} checked={indice === 0} />
+                  <span>{T.bollicine[tipo]}</span>
+                </label>
+              </li>
+            ))
+          }
+        </ul>
+      </fieldset>
+
+      <div class="riga-campi">
+        <div class="campo">
+          <label for="annata">{T.editorVino.campoAnnata}</label>
+          <input type="number" id="annata" min="1900" max="2100" step="1" />
+        </div>
+        <div class="campo">
+          <label for="gradazione">{T.editorVino.campoGradazione}</label>
+          <input type="text" inputmode="decimal" id="gradazione" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="interruttore">
+        <input type="checkbox" id="preferito" />
+        <label for="preferito">{T.vino.preferito}</label>
+      </div>
+    </fieldset>
+
+    <!-- 3. Assaggio ------------------------------------------------------ -->
+    <fieldset class="gruppo-campi">
+      <legend><h2>{T.editorVino.sezioneAssaggio}</h2></legend>
+
+      <div class="campo">
+        <label for="gusto">{T.editorVino.campoGusto}</label>
+        <input type="text" id="gusto" maxlength="140" autocomplete="off" />
+        <span class="campo__aiuto">{T.editorVino.campoGustoAiuto}</span>
+      </div>
+
+      <div class="campo">
+        <label for="descrizione">{T.editorVino.campoDescrizione}</label>
+        <textarea id="descrizione" maxlength="2000" rows="6"></textarea>
+        <span class="campo__aiuto">{T.editorVino.campoDescrizioneAiuto}</span>
+      </div>
+    </fieldset>
+
+    <div class="azioni-fisse">
+      <button class="bottone bottone--grande" type="submit">{T.azioni.salva}</button>
+      <a class="bottone bottone--secondario bottone--grande" id="annulla" href="#">{T.azioni.annulla}</a>
+    </div>
+  </form>
+</Base>
+
+<script>
+  import { T } from '../../i18n';
+  import { archivio } from '../../lib/archivio';
+  import { immagini } from '../../lib/immagini';
+  import { idFoto, preparaFoto } from '../../lib/foto';
+  import { annuncia, el, trova } from '../../lib/dom';
+  import { PERCORSI, parametro, urlVino } from '../../lib/percorsi';
+  import { validaVino } from '../../lib/validazione';
+  import { segnapostoBottiglia } from '../../lib/viste-vino';
+  import { valoriDistinti } from '../../lib/vini';
+  import type { ColoreVino, Vino } from '../../lib/tipi';
+
+  const id = parametro('id');
+  const messaggio = trova('#messaggio');
+  const modulo = trova<HTMLFormElement>('#modulo');
+
+  const esitoVini = await archivio.leggiVini();
+  const vini = esitoVini.ok ? esitoVini.dato : [];
+  const esistente: Vino | undefined = id === null ? undefined : vini.find((v) => v.id === id);
+
+  if (esistente !== undefined) {
+    trova('#titolo-pagina').textContent = T.editorVino.titoloModifica;
+    document.title = `${T.editorVino.titoloModifica} · ${T.app.nome}`;
+  }
+  trova<HTMLAnchorElement>('#annulla').href = esistente === undefined ? PERCORSI.vini : urlVino(esistente.id);
+
+  // Suggerimenti da quello che c'è già in cantina.
+  for (const [elencoId, campo] of [
+    ['#cantine-note', 'cantina'],
+    ['#paesi-noti', 'paese'],
+    ['#regioni-note', 'regione'],
+  ] as const) {
+    const elenco = trova(elencoId);
+    for (const valore of valoriDistinti(vini, campo)) elenco.append(el('option', { value: valore }));
+  }
+
+  // --- foto ---------------------------------------------------------------
+  const anteprima = trova('#anteprima');
+  const campoFoto = trova<HTMLInputElement>('#foto');
+  const bottoneTogli = trova<HTMLButtonElement>('#togli-foto');
+  const etichettaFoto = trova('#etichetta-foto');
+
+  /** Foto scelta ma non ancora salvata, e foto da cancellare al salvataggio. */
+  let fotoNuova: Blob | null = null;
+  let fotoId: string | undefined = esistente?.fotoId;
+  let fotoDaCancellare: string | undefined;
+  let indirizzoAnteprima: string | null = null;
+
+  function disegnaSegnaposto(): void {
+    const colore = (document.querySelector<HTMLInputElement>('input[name="colore"]:checked')?.value ??
+      'rosso') as ColoreVino;
+    anteprima.replaceChildren(segnapostoBottiglia(colore));
+    bottoneTogli.hidden = true;
+    etichettaFoto.textContent = T.editorVino.scattaFoto;
+  }
+
+  function mostraAnteprima(sorgente: Blob): void {
+    if (indirizzoAnteprima !== null) URL.revokeObjectURL(indirizzoAnteprima);
+    indirizzoAnteprima = URL.createObjectURL(sorgente);
+    anteprima.replaceChildren(el('img', { src: indirizzoAnteprima, alt: T.vino.foto }));
+    bottoneTogli.hidden = false;
+    etichettaFoto.textContent = T.editorVino.cambiaFoto;
+  }
+
+  campoFoto.addEventListener('change', async () => {
+    const file = campoFoto.files?.[0];
+    if (file === undefined) return;
+    if (!file.type.startsWith('image/')) {
+      annuncia(messaggio, T.errori.fotoNonImmagine, 'errore');
+      campoFoto.value = '';
+      return;
+    }
+    annuncia(messaggio, T.editorVino.fotoInLavorazione);
+    fotoNuova = await preparaFoto(file);
+    mostraAnteprima(fotoNuova);
+    annuncia(messaggio, '');
+    campoFoto.value = '';
+  });
+
+  bottoneTogli.addEventListener('click', () => {
+    fotoNuova = null;
+    if (fotoId !== undefined) fotoDaCancellare = fotoId;
+    fotoId = undefined;
+    disegnaSegnaposto();
+  });
+
+  for (const campo of document.querySelectorAll<HTMLInputElement>('input[name="colore"]')) {
+    campo.addEventListener('change', () => {
+      if (fotoNuova === null && fotoId === undefined) disegnaSegnaposto();
+    });
+  }
+
+  // --- riempimento iniziale ----------------------------------------------
+  if (esistente !== undefined) {
+    trova<HTMLInputElement>('#nome').value = esistente.nome;
+    trova<HTMLInputElement>('#cantina').value = esistente.cantina;
+    trova<HTMLInputElement>('#paese').value = esistente.paese;
+    trova<HTMLInputElement>('#regione').value = esistente.regione;
+    trova<HTMLInputElement>('#annata').value = esistente.annata === undefined ? '' : String(esistente.annata);
+    trova<HTMLInputElement>('#gradazione').value =
+      esistente.gradazione === undefined ? '' : String(esistente.gradazione).replace('.', ',');
+    trova<HTMLInputElement>('#gusto').value = esistente.gusto;
+    trova<HTMLTextAreaElement>('#descrizione').value = esistente.descrizione;
+    trova<HTMLInputElement>('#preferito').checked = esistente.preferito;
+    const scelto = document.querySelector<HTMLInputElement>(`input[name="colore"][value="${esistente.colore}"]`);
+    if (scelto !== null) scelto.checked = true;
+    const scelteBollicine = document.querySelector<HTMLInputElement>(
+      `input[name="bollicine"][value="${esistente.bollicine}"]`,
+    );
+    if (scelteBollicine !== null) scelteBollicine.checked = true;
+  }
+
+  disegnaSegnaposto();
+  if (esistente?.fotoId !== undefined) {
+    const salvata = await immagini.leggi(esistente.fotoId);
+    if (salvata.ok && salvata.dato !== null) mostraAnteprima(salvata.dato);
+  }
+
+  // --- salvataggio --------------------------------------------------------
+  modulo.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+
+    // La foto si salva per prima: se non c'è spazio, il vino non viene
+    // salvato a metà con un riferimento a una foto inesistente.
+    if (fotoNuova !== null) {
+      const nuovoId = esistente?.fotoId ?? idFoto();
+      const salvata = await immagini.salva(nuovoId, fotoNuova);
+      if (!salvata.ok) {
+        annuncia(messaggio, T.errori.fotoNonSalvata, 'errore');
+        return;
+      }
+      fotoId = nuovoId;
+      fotoNuova = null;
+    }
+
+    const grezzo: Record<string, unknown> = {
+      id: esistente?.id,
+      nome: trova<HTMLInputElement>('#nome').value,
+      cantina: trova<HTMLInputElement>('#cantina').value,
+      paese: trova<HTMLInputElement>('#paese').value,
+      regione: trova<HTMLInputElement>('#regione').value,
+      colore: document.querySelector<HTMLInputElement>('input[name="colore"]:checked')?.value,
+      bollicine: document.querySelector<HTMLInputElement>('input[name="bollicine"]:checked')?.value,
+      annata: trova<HTMLInputElement>('#annata').value,
+      gradazione: trova<HTMLInputElement>('#gradazione').value,
+      gusto: trova<HTMLInputElement>('#gusto').value,
+      descrizione: trova<HTMLTextAreaElement>('#descrizione').value,
+      preferito: trova<HTMLInputElement>('#preferito').checked,
+      fotoId,
+      creatoIl: esistente?.creatoIl,
+    };
+
+    const esito = validaVino(
+      grezzo,
+      vini.map((v) => v.id).filter((altro) => altro !== esistente?.id),
+    );
+    if (!esito.ok) {
+      const chiave = esito.errore.replace('errori.', '') as keyof typeof T.errori;
+      annuncia(messaggio, T.errori[chiave] ?? esito.errore, 'errore');
+      messaggio.scrollIntoView({ block: 'center' });
+      return;
+    }
+
+    const salvato = await archivio.salvaVino(esito.dato);
+    if (!salvato.ok) {
+      annuncia(messaggio, T.errori.storagePieno, 'errore');
+      return;
+    }
+    if (fotoDaCancellare !== undefined) await immagini.cancella(fotoDaCancellare);
+    location.href = urlVino(esito.dato.id);
+  });
+</script>

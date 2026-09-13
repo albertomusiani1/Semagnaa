@@ -11,7 +11,8 @@
     "ricette": "Ricette",
     "spesa": "Spesa",
     "impostazioni": "Impostazioni",
-    "indietro": "Indietro"
+    "indietro": "Indietro",
+    "vini": "Vini"
   },
   "azioni": {
     "cucina": "Cucina",
@@ -57,7 +58,9 @@
     "creaRicettaDettaglio": "Ingredienti, passaggi e timer. Resta sul telefono.",
     "nessunaRicetta": "Non c'è ancora nessuna ricetta.",
     "nessunaPreferita": "Nessuna preferita per ora: aprine una e tocca la stella.",
-    "conteggio": "{n} ricette in archivio"
+    "conteggio": "{n} ricette in archivio",
+    "vaiInCantina": "Cerca un vino",
+    "vaiInCantinaDettaglio": "Filtra per zona, cantina, colore e bollicine, poi guarda le bottiglie."
   },
   "ricette": {
     "titolo": "Ricette",
@@ -120,7 +123,10 @@
     "riprendiTesto": "Avevi lasciato questa ricetta al passaggio {passaggio} di {totale}.",
     "schermoAcceso": "Schermo tenuto acceso",
     "silenzia": "Silenzia la suoneria",
-    "suonoAttivo": "Suoneria attiva"
+    "suonoAttivo": "Suoneria attiva",
+    "precedenteAria": "Indietro, al passaggio precedente",
+    "successivoAria": "Avanti, al passaggio successivo",
+    "fineAria": "Fine, ricetta completata"
   },
   "spesa": {
     "titolo": "Spesa",
@@ -254,7 +260,9 @@
     "forzaTitolo": "L’app non si aggiorna?",
     "forzaAiuto": "Svuota la copia dell’app salvata sul dispositivo e la riscarica. Le tue ricette, la spesa e le impostazioni NON vengono toccate.",
     "forzaAzione": "Svuota la cache e ricarica",
-    "forzaInCorso": "Svuoto la cache e ricarico..."
+    "forzaInCorso": "Svuoto la cache e ricarico...",
+    "viniInArchivio": "Vini in cantina",
+    "fotoSalvate": "Foto salvate"
   },
   "info": {
     "titolo": "Come funziona",
@@ -342,7 +350,20 @@
     "seedNonCaricato": "Non è stato possibile caricare le ricette di esempio.",
     "ingredienteSenzaNome": "Scrivi il nome dell'ingrediente prima di aggiungerlo.",
     "passaggioSenzaTesto": "Scrivi cosa si fa prima di aggiungere il passaggio.",
-    "tagDuplicato": "Quel tag c’è già."
+    "tagDuplicato": "Quel tag c’è già.",
+    "vinoNonValido": "Dati del vino non validi.",
+    "nomeVinoObbligatorio": "Il nome del vino è obbligatorio.",
+    "cantinaObbligatoria": "La cantina è obbligatoria.",
+    "coloreNonValido": "Scegli un colore valido.",
+    "bollicineNonValide": "Scegli fermo, frizzante o spumante.",
+    "annataNonValida": "L’annata deve essere un anno fra il 1900 e il 2100.",
+    "gradazioneNonValida": "La gradazione deve essere un numero.",
+    "gustoTroppoLungo": "Il gusto supera i 140 caratteri: il resto va nelle note.",
+    "descrizioneVinoTroppoLunga": "Le note superano i 2000 caratteri.",
+    "provenienzaTroppoLunga": "Stato o regione troppo lunghi.",
+    "fotoNonSalvata": "Non è stato possibile salvare la foto: spazio esaurito o modalità privata.",
+    "fotoNonLetta": "Non è stato possibile leggere la foto.",
+    "fotoNonImmagine": "Quel file non è un’immagine."
   },
   "pwa": {
     "aggiornamentoTitolo": "Nuova versione disponibile",
@@ -373,5 +394,90 @@
     "passaggiQualsiasi": "Indifferente",
     "passaggiPochi": "Pochi, fino a 4",
     "passaggiTanti": "Tanti, da 8"
+  },
+  "vini": {
+    "titolo": "Cantina",
+    "sottotitolo": "Che vino cerchi?",
+    "aiuto": "Scegli i filtri e tocca Cerca. Senza filtri escono tutti i vini.",
+    "cerca": "Cerca",
+    "cambiaFiltri": "Cambia i filtri",
+    "risultati": "{n} vini trovati",
+    "unRisultato": "1 vino trovato",
+    "nessunRisultato": "Nessun vino con questi filtri.",
+    "nessunRisultatoAiuto": "Prova a togliere qualche filtro, o aggiungi il vino che cerchi.",
+    "cantinaVuota": "La cantina è ancora vuota.",
+    "cantinaVuotaAiuto": "Aggiungi il primo vino: una foto, la provenienza, il colore e due parole sul gusto.",
+    "aggiungi": "Aggiungi un vino",
+    "campoTesto": "Cerca per nome, cantina o zona",
+    "campoPaese": "Stato",
+    "campoRegione": "Regione o zona",
+    "campoCantina": "Cantina",
+    "colore": "Colore",
+    "bollicine": "Bollicine",
+    "annata": "Annata",
+    "annataDa": "Dal",
+    "annataA": "Al",
+    "soloPreferiti": "Solo i preferiti",
+    "tutti": "Tutti",
+    "tutte": "Tutte",
+    "azzera": "Azzera i filtri",
+    "inCantina": "{n} vini in cantina",
+    "unoInCantina": "1 vino in cantina",
+    "riepilogoFiltri": "Filtri: {filtri}",
+    "nessunFiltro": "nessun filtro"
+  },
+  "vino": {
+    "nonTrovato": "Vino non trovato",
+    "nonTrovatoAiuto": "Forse è stato eliminato, oppure il link non è più valido.",
+    "provenienza": "Provenienza",
+    "cantina": "Cantina",
+    "annata": "Annata",
+    "senzaAnnata": "Senza annata",
+    "gradazione": "Gradazione",
+    "gusto": "Gusto",
+    "descrizione": "Note",
+    "foto": "Foto della bottiglia",
+    "senzaFoto": "Nessuna foto",
+    "eliminaTitolo": "Eliminare questo vino?",
+    "eliminaTesto": "Sparisce da questo dispositivo, foto compresa. Non si torna indietro.",
+    "preferito": "Segna come preferito",
+    "nonPreferito": "Togli dai preferiti"
+  },
+  "colori": {
+    "rosso": "Rosso",
+    "bianco": "Bianco",
+    "rosato": "Rosato"
+  },
+  "bollicine": {
+    "fermo": "Fermo",
+    "frizzante": "Frizzante",
+    "spumante": "Spumante"
+  },
+  "editorVino": {
+    "titoloNuovo": "Nuovo vino",
+    "titoloModifica": "Modifica vino",
+    "sezioneFoto": "Foto",
+    "scattaFoto": "Scatta o scegli una foto",
+    "cambiaFoto": "Cambia foto",
+    "rimuoviFoto": "Togli la foto",
+    "fotoAiuto": "La foto viene rimpicciolita sul telefono prima di essere salvata, e resta su questo dispositivo.",
+    "fotoInLavorazione": "Preparo la foto...",
+    "sezioneBase": "Il vino",
+    "campoNome": "Nome del vino",
+    "campoNomeAiuto": "Come lo trovi in etichetta.",
+    "campoCantina": "Cantina o produttore",
+    "campoPaese": "Stato",
+    "campoRegione": "Regione o zona",
+    "campoProvenienzaAiuto": "Scrivi liberamente: i filtri della ricerca si costruiscono da quello che inserisci.",
+    "campoColore": "Colore",
+    "campoBollicine": "Bollicine",
+    "campoAnnata": "Annata",
+    "campoGradazione": "Gradazione (% vol)",
+    "sezioneAssaggio": "Assaggio",
+    "campoGusto": "Gusto",
+    "campoGustoAiuto": "Poche parole: si leggono sulla scheda nell’elenco. Per esempio \"secco, tannico, di frutta rossa\".",
+    "campoDescrizione": "Note",
+    "campoDescrizioneAiuto": "Il testo lungo: quando l’hai bevuto, con cosa, se lo ricompreresti. Si vede solo aprendo il vino.",
+    "salvato": "Vino salvato."
   }
 }

@@ -90,10 +90,53 @@ export interface Quantita {
   unita?: Unita;
 }
 
+/* --- Vini ---------------------------------------------------------------
+ * Colore e bollicine sono due cose diverse e vanno tenute separate: esiste il
+ * bianco fermo, il bianco frizzante e il rosato spumante. Un unico elenco
+ * "bianco | rosso | rosato | frizzante | fermo" costringerebbe a scegliere
+ * quale delle due dire, e renderebbe impossibile filtrare per l'altra.
+ */
+export const COLORI_VINO = ['rosso', 'bianco', 'rosato'] as const;
+export type ColoreVino = (typeof COLORI_VINO)[number];
+
+export const BOLLICINE = ['fermo', 'frizzante', 'spumante'] as const;
+export type Bollicine = (typeof BOLLICINE)[number];
+
+export interface Vino {
+  id: string;
+  nome: string;
+  cantina: string;
+  /** Stato: "Italia", "Francia", "Portogallo"... */
+  paese: string;
+  /** Regione o zona: "Toscana", "Borgogna", "Douro". */
+  regione: string;
+  colore: ColoreVino;
+  bollicine: Bollicine;
+  annata?: number;
+  gradazione?: number;
+  /** Poche parole: si legge sulla scheda dell'elenco. */
+  gusto: string;
+  /** Testo lungo: si vede solo aprendo il singolo vino. */
+  descrizione: string;
+  preferito: boolean;
+  /** Riferimento alla foto nell'archivio immagini (IndexedDB). */
+  fotoId?: string;
+  creatoIl: string;
+  aggiornatoIl: string;
+}
+
 export const LIMITI = {
   titoloMax: 90,
   nomeIngredienteMax: 80,
   testoPassaggioMax: 600,
   timerMaxSecondi: 60 * 60 * 48,
   porzioniMax: 50,
+  nomeVinoMax: 90,
+  cantinaMax: 80,
+  regioneMax: 60,
+  paeseMax: 60,
+  gustoMax: 140,
+  descrizioneVinoMax: 2000,
+  annataMin: 1900,
+  annataMax: 2100,
 } as const;

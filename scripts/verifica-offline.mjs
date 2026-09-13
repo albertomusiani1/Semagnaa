@@ -13,6 +13,8 @@ const PAGINE = [
   ['home', '', '#conteggio'],
   ['ricette', 'ricette/', '.scheda'],
   ['ricetta', 'ricetta/?id=brodo-vegetale', '.elenco-ingredienti li'],
+  ['vini', 'vini/', '#quanti'],
+  ['vino-modifica', 'vino/modifica/', '#nome'],
   ['cucina', 'cucina/?id=brodo-vegetale', '#passaggio'],
   ['modifica', 'modifica/?id=brodo-vegetale', '#titolo'],
   ['spesa', 'spesa/', '.voce'],

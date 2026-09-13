@@ -10,13 +10,14 @@
  * di schema. L'interfaccia e comunque asincrona, così il passaggio a
  * IndexedDB non cambia una riga fuori da qui.
  */
-import type { Ricetta } from './tipi.ts';
+import type { Ricetta, Vino } from './tipi.ts';
 import type { Archivio, ChiaveStato } from './archivio.ts';
 import type { Esito } from './esito.ts';
 import { errore, ok } from './esito.ts';
 
 const PREFISSO = 'semagnaa:';
 const CHIAVE_RICETTE = `${PREFISSO}ricette`;
+const CHIAVE_VINI = `${PREFISSO}vini`;
 const chiaveStato = (chiave: ChiaveStato): string => `${PREFISSO}stato:${chiave}`;
 
 function magazzino(): Storage | null {
@@ -92,6 +93,37 @@ export const archivioLocale: Archivio = {
     const perId = new Map(attuali.map((r) => [r.id, r]));
     for (const ricetta of nuove) perId.set(ricetta.id, ricetta);
     return scriviJson(CHIAVE_RICETTE, [...perId.values()]);
+  },
+
+  async leggiVini(): Promise<Esito<Vino[]>> {
+    const vini = leggiJson<Vino[]>(CHIAVE_VINI, []);
+    return Array.isArray(vini) ? ok(vini) : ok([]);
+  },
+
+  async leggiVino(id: string): Promise<Esito<Vino | null>> {
+    const vini = leggiJson<Vino[]>(CHIAVE_VINI, []);
+    return ok(vini.find((v) => v.id === id) ?? null);
+  },
+
+  async salvaVino(vino: Vino): Promise<Esito<Vino>> {
+    const vini = leggiJson<Vino[]>(CHIAVE_VINI, []);
+    const indice = vini.findIndex((v) => v.id === vino.id);
+    if (indice === -1) vini.push(vino);
+    else vini[indice] = vino;
+    const esito = scriviJson(CHIAVE_VINI, vini);
+    return esito.ok ? ok(vino) : errore(esito.errore);
+  },
+
+  async cancellaVino(id: string): Promise<Esito<void>> {
+    const vini = leggiJson<Vino[]>(CHIAVE_VINI, []).filter((v) => v.id !== id);
+    return scriviJson(CHIAVE_VINI, vini);
+  },
+
+  async unisciVini(nuovi: readonly Vino[]): Promise<Esito<void>> {
+    const attuali = leggiJson<Vino[]>(CHIAVE_VINI, []);
+    const perId = new Map(attuali.map((v) => [v.id, v]));
+    for (const vino of nuovi) perId.set(vino.id, vino);
+    return scriviJson(CHIAVE_VINI, [...perId.values()]);
   },
 
   async leggiStato<T>(chiave: ChiaveStato, predefinito: T): Promise<Esito<T>> {

@@ -48,6 +48,8 @@ import { T } from '../../i18n';
       <li>{T.impostazioni.versione}: <span id="versione">—</span></li>
       <li>{T.impostazioni.versioneInUso}: <span id="versione-cache">—</span></li>
       <li>{T.impostazioni.ricetteInArchivio}: <span id="quante">—</span></li>
+      <li>{T.impostazioni.viniInArchivio}: <span id="quanti-vini">—</span></li>
+      <li>{T.impostazioni.fotoSalvate}: <span id="quante-foto">—</span></li>
       <li id="offline" hidden>{T.impostazioni.statoOffline}</li>
     </ul>
 
@@ -77,15 +79,24 @@ import { T } from '../../i18n';
   import { archivio } from '../../lib/archivio';
   import { annuncia, trova } from '../../lib/dom';
   import { assicuraSeed, caricaRicette } from '../../lib/seed';
-  import { validaImportazione } from '../../lib/validazione';
+  import { validaImportazione, validaViniImportati } from '../../lib/validazione';
   import { VERSIONE_APP } from '../../lib/versione';
   import { cercaAggiornamenti, svuotaCacheERicarica, versioneInUso } from '../../lib/aggiornamento';
+  import { immagini } from '../../lib/immagini';
+  import { pesoLeggibile } from '../../lib/foto';
   import { PERCORSI } from '../../lib/percorsi';
 
   const messaggio = trova('#messaggio');
   const ricette = await caricaRicette();
   trova('#quante').textContent = String(ricette.length);
   trova('#versione').textContent = VERSIONE_APP;
+
+  const esitoVini = await archivio.leggiVini();
+  trova('#quanti-vini').textContent = String(esitoVini.ok ? esitoVini.dato.length : 0);
+  const statoFoto = await immagini.statistiche();
+  trova('#quante-foto').textContent = statoFoto.ok
+    ? `${statoFoto.dato.quante} (${pesoLeggibile(statoFoto.dato.byte)})`
+    : '—';
   if ('serviceWorker' in navigator && navigator.serviceWorker.controller !== null) {
     trova('#offline').hidden = false;
   }
@@ -119,8 +130,12 @@ import { T } from '../../i18n';
   });
 
   // --- esportazione -------------------------------------------------------
-  trova('#esporta').addEventListener('click', () => {
-    const contenuto = JSON.stringify({ app: T.app.nome, versione: VERSIONE_APP, ricette }, null, 2);
+  trova('#esporta').addEventListener('click', async () => {
+    // I vini entrano nell'esportazione; le foto no: sono file binari e
+    // gonfierebbero il JSON. Vedi README, "Limiti noti".
+    const esitoVini = await archivio.leggiVini();
+    const vini = esitoVini.ok ? esitoVini.dato : [];
+    const contenuto = JSON.stringify({ app: T.app.nome, versione: VERSIONE_APP, ricette, vini }, null, 2);
     const url = URL.createObjectURL(new Blob([contenuto], { type: 'application/json' }));
     const link = document.createElement('a');
     link.href = url;
@@ -142,6 +157,16 @@ import { T } from '../../i18n';
       return;
     }
     await archivio.unisciRicette(esito.dato);
+
+    // Se il file contiene anche una cantina, la importiamo insieme.
+    try {
+      const contenuto = JSON.parse(await file.text()) as { vini?: unknown };
+      const viniImportati = validaViniImportati(contenuto.vini);
+      if (viniImportati.ok && viniImportati.dato.length > 0) await archivio.unisciVini(viniImportati.dato);
+    } catch {
+      /* il file non contiene vini: niente da fare */
+    }
+
     annuncia(messaggio, interpola(T.impostazioni.importate, { n: esito.dato.length }));
     campoFile.value = '';
   });
@@ -162,8 +187,11 @@ import { T } from '../../i18n';
   trova('#azzera-no').addEventListener('click', () => dialogo.close());
   trova('#azzera-si').addEventListener('click', async () => {
     await archivio.azzeraTutto();
+    await immagini.azzera();
     dialogo.close();
     annuncia(messaggio, T.impostazioni.azzerato);
     trova('#quante').textContent = '0';
+    trova('#quanti-vini').textContent = '0';
+    trova('#quante-foto').textContent = '0';
   });
 </script>
