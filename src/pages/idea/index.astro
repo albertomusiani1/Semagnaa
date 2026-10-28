@@ -1,0 +1,130 @@
+---
+import Base from '../../layouts/Base.astro';
+import Icona from '../../components/Icona.astro';
+import { T } from '../../i18n';
+import { PERCORSI } from '../../lib/percorsi';
+---
+
+<Base titolo={T.idee.titolo}>
+  <p><a class="piccolo" href={PERCORSI.idee}>&larr; {T.idee.titolo}</a></p>
+
+  <div id="messaggio" class="messaggio" role="status" hidden></div>
+
+  <article id="idea" hidden>
+    <h1 id="titolo">{T.stati.caricamento}</h1>
+    <p class="tenue piccolo" id="meta"></p>
+
+    <div class="gruppo-bottoni spazio-sotto">
+      <button class="bottone bottone--secondario bottone--icona" type="button" id="preferita" aria-pressed="false">
+        <Icona nome="stella" dimensione={20} />
+        <span class="solo-lettori-schermo" id="preferita-testo">{T.idea.preferita}</span>
+      </button>
+      <a class="bottone bottone--secondario" id="modifica" href={PERCORSI.modificaIdea}>
+        <Icona nome="matita" dimensione={20} />
+        {T.azioni.modifica}
+      </a>
+      <button class="bottone bottone--pericolo bottone--icona" type="button" id="elimina" aria-label={T.azioni.elimina}>
+        <Icona nome="cestino" dimensione={20} />
+      </button>
+    </div>
+
+    <section id="sezione-nota" hidden>
+      <h2>{T.idea.nota}</h2>
+      <p id="nota"></p>
+    </section>
+
+    <h2>{T.idea.piatti}</h2>
+    <ul class="elenco-piatti" id="piatti"></ul>
+  </article>
+
+  <dialog id="dialogo-elimina" aria-labelledby="dialogo-elimina-titolo">
+    <h2 id="dialogo-elimina-titolo">{T.idea.eliminaTitolo}</h2>
+    <p>{T.idea.eliminaTesto}</p>
+    <div class="gruppo-bottoni">
+      <button class="bottone bottone--pericolo" type="button" id="conferma-elimina">{T.azioni.confermaElimina}</button>
+      <button class="bottone bottone--secondario" type="button" id="annulla-elimina">{T.azioni.annulla}</button>
+    </div>
+  </dialog>
+</Base>
+
+<script>
+  import { T, interpola } from '../../i18n';
+  import { archivio } from '../../lib/archivio';
+  import { el, svuota, trova } from '../../lib/dom';
+  import { messaggioVuoto } from '../../lib/viste';
+  import { piattiConNote } from '../../lib/idee';
+  import { PERCORSI, parametro, urlModificaIdea } from '../../lib/percorsi';
+  import type { Idea } from '../../lib/tipi';
+
+  const id = parametro('id');
+  const messaggio = trova('#messaggio');
+  const esito = id === null ? null : await archivio.leggiIdea(id);
+  const idea: Idea | null = esito !== null && esito.ok ? esito.dato : null;
+
+  if (idea === null) {
+    messaggio.hidden = false;
+    messaggio.dataset['tipo'] = 'errore';
+    svuota(messaggio);
+    messaggio.append(messaggioVuoto(T.idea.nonTrovata, T.idea.nonTrovataAiuto));
+  } else {
+    const scheda = idea;
+    trova('#idea').hidden = false;
+    document.title = `${scheda.titolo} · ${T.app.nome}`;
+    trova('#titolo').textContent = scheda.titolo;
+
+    const quanti = scheda.piatti.length;
+    const conNote = piattiConNote(scheda);
+    const pezzi = [quanti === 1 ? T.idee.unPiatto : interpola(T.idee.piattiN, { n: quanti })];
+    if (conNote > 0) pezzi.push(conNote === 1 ? T.idee.unaConNote : interpola(T.idee.conNote, { n: conNote }));
+    trova('#meta').textContent = pezzi.join(' · ');
+
+    if (scheda.nota !== undefined) {
+      trova('#sezione-nota').hidden = false;
+      trova('#nota').textContent = scheda.nota;
+    }
+
+    // Ogni piatto si approfondisce da solo: le note stanno dentro, chiuse.
+    const elencoPiatti = trova('#piatti');
+    svuota(elencoPiatti);
+    for (const piatto of scheda.piatti) {
+      if (piatto.note === undefined || piatto.note === '') {
+        elencoPiatti.append(el('li', { class: 'piatto piatto--semplice' }, [piatto.nome]));
+        continue;
+      }
+      elencoPiatti.append(
+        el('li', {}, [
+          el('details', { class: 'piatto' }, [
+            el('summary', {}, [piatto.nome]),
+            el('p', { class: 'piatto__note' }, [piatto.note]),
+          ]),
+        ]),
+      );
+    }
+
+    trova<HTMLAnchorElement>('#modifica').href = urlModificaIdea(scheda.id);
+
+    const bottonePreferita = trova<HTMLButtonElement>('#preferita');
+    const testoPreferita = trova('#preferita-testo');
+    function aggiornaPreferita(): void {
+      bottonePreferita.setAttribute('aria-pressed', String(scheda.preferita));
+      testoPreferita.textContent = scheda.preferita ? T.idea.nonPreferita : T.idea.preferita;
+      bottonePreferita.classList.toggle('bottone--accento', scheda.preferita);
+    }
+    aggiornaPreferita();
+    bottonePreferita.addEventListener('click', async () => {
+      scheda.preferita = !scheda.preferita;
+      scheda.aggiornataIl = new Date().toISOString();
+      await archivio.salvaIdea(scheda);
+      aggiornaPreferita();
+    });
+
+    const dialogo = trova<HTMLDialogElement>('#dialogo-elimina');
+    trova('#elimina').addEventListener('click', () => dialogo.showModal());
+    trova('#annulla-elimina').addEventListener('click', () => dialogo.close());
+    trova('#conferma-elimina').addEventListener('click', async () => {
+      await archivio.cancellaIdea(scheda.id);
+      dialogo.close();
+      location.href = PERCORSI.idee;
+    });
+  }
+</script>

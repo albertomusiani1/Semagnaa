@@ -21,7 +21,8 @@
     "verifica:responsive": "node scripts/verifica-responsive.mjs verifiche/screenshot",
     "verifica:offline": "node scripts/verifica-offline.mjs",
     "verifica:aggiornamento": "node scripts/verifica-aggiornamento.mjs",
-    "verifica:vini": "node scripts/verifica-vini.mjs"
+    "verifica:vini": "node scripts/verifica-vini.mjs",
+    "verifica:idee": "node scripts/verifica-idee.mjs"
   },
   "dependencies": {
     "astro": "^7.2.10"

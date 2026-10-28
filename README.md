@@ -1,8 +1,8 @@
 # Semagnaa
 
 App personale di cucina: archivio ricette, **modalità Cucina** passo a passo con timer,
-**modalità Spesa** con checklist della dispensa e **Cantina**, il catalogo dei vini con
-foto e ricerca a filtri. Funziona **offline**, si installa sul telefono come app (PWA),
+**modalità Spesa** con checklist della dispensa, **Idee per la domenica** (combinazioni di
+piatti) e **Cantina**, il catalogo dei vini con foto e ricerca a filtri. Funziona **offline**, si installa sul telefono come app (PWA),
 non ha backend e non manda niente a nessuno: i dati stanno sul dispositivo.
 
 - Costruita con [Astro](https://astro.build) in output statico, TypeScript `strict`, CSS puro.
@@ -61,6 +61,7 @@ Altri comandi:
 | `npm run verifica:offline` | apre ogni schermata a rete staccata |
 | `npm run verifica:aggiornamento` | simula una pubblicazione e controlla che l'aggiornamento arrivi |
 | `npm run verifica:vini` | crea vini con foto e prova filtri, ricerca e cancellazione |
+| `npm run verifica:idee` | crea idee con piatti e note e prova apertura, riordino, ricerca |
 
 Le ultime tre usano Playwright, che **non** è una dipendenza dell'app: installalo solo
 se vuoi rilanciarle (`npm i -D playwright && npx playwright install chromium`).
@@ -123,6 +124,18 @@ grandi come il pollice. Dove serve c'è il timer:
 
 Le quantità si sommano solo dove ha senso: `g` con `kg`, `ml` con `l`. Grammi e cucchiai
 restano voci separate, `q.b.` compare una volta sola e senza numero.
+
+**Idee per la domenica** (`/idee/`) — le combinazioni di piatti che funzionano insieme:
+*"Pranzo messicano"* con tacos, guacamole e Caesar salad. Ogni idea ha un titolo, una nota
+facoltativa sull'insieme (per quante persone, cosa bere) e l'elenco dei piatti.
+
+- **Ogni piatto può avere le sue note**, e si aprono solo toccando il piatto nella scheda:
+  nell'elenco si leggono i soli nomi, così l'idea resta leggibile a colpo d'occhio.
+- I piatti sono **testo libero**, con i suggerimenti dei titoli delle tue ricette e dei
+  piatti già usati nelle altre idee: un'idea nasce spesso prima della ricetta e non deve
+  aspettarla.
+- I piatti si aggiungono uno alla volta, si riordinano e si tolgono, come gli ingredienti
+  di una ricetta. Le preferite stanno in cima; la ricerca compare dalla quinta idea.
 
 **Cantina** (`/vini/`) — il catalogo dei vini, pensato come uno scaffale: si entra e si
 trovano **solo i filtri**, si sceglie, si tocca **Cerca** e solo allora compaiono le
@@ -359,7 +372,8 @@ telefono, *Impostazioni → Ricarica le ricette di esempio*).
     │   ├── spesa.ts            aggregazione ingredienti → lista
     │   ├── scala.ts            scalatura porzioni
     │   ├── validazione.ts      validazione editor e importazione
-    │   ├── vini.ts             filtri e ricerca della cantina (puri)
+    │   ├── idee.ts             ordinamento e ricerca delle idee (puri)
+│   ├── vini.ts             filtri e ricerca della cantina (puri)
 │   ├── immagini.ts         interfaccia dell'archivio foto (astratta)
 │   ├── immagini-indexeddb.ts unica implementazione, unico file che usa IndexedDB
 │   ├── foto.ts             riduzione delle foto prima del salvataggio
@@ -507,6 +521,9 @@ BASE_PATH=/ node scripts/check-pages.mjs --base http://localhost:4321/
   schede dei vini, non i file binari. Cambiando telefono i vini si ritrovano, le loro foto
   no. Le foto stanno in IndexedDB, nello spazio del sito, e si cancellano solo cancellando
   il vino o azzerando i dati.
+- **Le note dei piatti di un'idea si vedono solo aprendo il piatto**: è voluto, serve a
+  tenere l'elenco corto. Se una nota è importante a colpo d'occhio, mettila nella nota
+  generale dell'idea.
 - **La cantina parte sempre dai filtri**, anche tornando indietro da una scheda: i valori
   dell'ultima ricerca restano compilati, ma i risultati si rivedono toccando Cerca. È
   voluto, ed è il comportamento chiesto.

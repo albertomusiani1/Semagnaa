@@ -10,7 +10,7 @@
  * di schema. L'interfaccia e comunque asincrona, così il passaggio a
  * IndexedDB non cambia una riga fuori da qui.
  */
-import type { Ricetta, Vino } from './tipi.ts';
+import type { Idea, Ricetta, Vino } from './tipi.ts';
 import type { Archivio, ChiaveStato } from './archivio.ts';
 import type { Esito } from './esito.ts';
 import { errore, ok } from './esito.ts';
@@ -18,6 +18,7 @@ import { errore, ok } from './esito.ts';
 const PREFISSO = 'semagnaa:';
 const CHIAVE_RICETTE = `${PREFISSO}ricette`;
 const CHIAVE_VINI = `${PREFISSO}vini`;
+const CHIAVE_IDEE = `${PREFISSO}idee`;
 const chiaveStato = (chiave: ChiaveStato): string => `${PREFISSO}stato:${chiave}`;
 
 function magazzino(): Storage | null {
@@ -124,6 +125,37 @@ export const archivioLocale: Archivio = {
     const perId = new Map(attuali.map((v) => [v.id, v]));
     for (const vino of nuovi) perId.set(vino.id, vino);
     return scriviJson(CHIAVE_VINI, [...perId.values()]);
+  },
+
+  async leggiIdee(): Promise<Esito<Idea[]>> {
+    const idee = leggiJson<Idea[]>(CHIAVE_IDEE, []);
+    return Array.isArray(idee) ? ok(idee) : ok([]);
+  },
+
+  async leggiIdea(id: string): Promise<Esito<Idea | null>> {
+    const idee = leggiJson<Idea[]>(CHIAVE_IDEE, []);
+    return ok(idee.find((i) => i.id === id) ?? null);
+  },
+
+  async salvaIdea(idea: Idea): Promise<Esito<Idea>> {
+    const idee = leggiJson<Idea[]>(CHIAVE_IDEE, []);
+    const indice = idee.findIndex((i) => i.id === idea.id);
+    if (indice === -1) idee.push(idea);
+    else idee[indice] = idea;
+    const esito = scriviJson(CHIAVE_IDEE, idee);
+    return esito.ok ? ok(idea) : errore(esito.errore);
+  },
+
+  async cancellaIdea(id: string): Promise<Esito<void>> {
+    const idee = leggiJson<Idea[]>(CHIAVE_IDEE, []).filter((i) => i.id !== id);
+    return scriviJson(CHIAVE_IDEE, idee);
+  },
+
+  async unisciIdee(nuove: readonly Idea[]): Promise<Esito<void>> {
+    const attuali = leggiJson<Idea[]>(CHIAVE_IDEE, []);
+    const perId = new Map(attuali.map((i) => [i.id, i]));
+    for (const idea of nuove) perId.set(idea.id, idea);
+    return scriviJson(CHIAVE_IDEE, [...perId.values()]);
   },
 
   async leggiStato<T>(chiave: ChiaveStato, predefinito: T): Promise<Esito<T>> {
