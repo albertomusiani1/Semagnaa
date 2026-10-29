@@ -9,6 +9,7 @@ import { PERCORSI } from '../lib/percorsi';
 const voci = [
   { href: PERCORSI.home, etichetta: T.nav.home, icona: 'casa' as const },
   { href: PERCORSI.ricette, etichetta: T.nav.ricette, icona: 'libro' as const },
+  { href: PERCORSI.idee, etichetta: T.nav.idee, icona: 'lampadina' as const },
   { href: PERCORSI.vini, etichetta: T.nav.vini, icona: 'bottiglia' as const },
   { href: PERCORSI.spesa, etichetta: T.nav.spesa, icona: 'carrello' as const },
   { href: PERCORSI.impostazioni, etichetta: T.nav.impostazioni, icona: 'ingranaggio' as const },
@@ -19,6 +20,8 @@ function eAttiva(href: string): boolean {
   if (href === PERCORSI.home) return attuale === PERCORSI.home;
   // Il dettaglio di un vino sta sotto /vino/: la voce accesa resta "Vini".
   if (href === PERCORSI.vini) return attuale.startsWith(PERCORSI.vini) || attuale.startsWith(PERCORSI.vino);
+  // Anche la scheda di un'idea sta sotto /idea/: la voce accesa resta "Idee".
+  if (href === PERCORSI.idee) return attuale.startsWith(PERCORSI.idee) || attuale.startsWith(PERCORSI.idea);
   return attuale.startsWith(href);
 }
 ---

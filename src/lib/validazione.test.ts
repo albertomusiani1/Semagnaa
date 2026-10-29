@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validaImportazione, validaRicetta, validaVino } from './validazione.ts';
+import {
+  validaIdea,
+  validaIdeeImportate,
+  validaImportazione,
+  validaRicetta,
+  validaVino,
+} from './validazione.ts';
 
 const VALIDA = {
   titolo: 'Risotto allo zafferano',
@@ -210,4 +216,73 @@ test('due vini con lo stesso nome e cantina prendono id diversi', () => {
   const secondo = validaVino(VINO_VALIDO, [primo.dato.id]);
   assert.equal(secondo.ok, true);
   if (secondo.ok) assert.equal(secondo.dato.id, `${primo.dato.id}-2`);
+});
+
+/* --- Idee per la domenica ----------------------------------------------- */
+
+const IDEA_VALIDA = {
+  titolo: 'Pranzo messicano',
+  nota: 'Per sei persone, con birra chiara.',
+  piatti: [
+    { nome: 'Tacos di manzo', note: 'Carne marinata la sera prima.' },
+    { nome: 'Guacamole' },
+    { nome: 'Caesar salad' },
+  ],
+};
+
+test('un idea completa passa e prende un id dal titolo', () => {
+  const esito = validaIdea(IDEA_VALIDA);
+  assert.equal(esito.ok, true);
+  if (!esito.ok) return;
+  assert.equal(esito.dato.id, 'pranzo-messicano');
+  assert.equal(esito.dato.piatti.length, 3);
+  assert.equal(esito.dato.piatti[0]?.note, 'Carne marinata la sera prima.');
+  assert.equal(esito.dato.piatti[1]?.note, undefined);
+  assert.equal(esito.dato.preferita, false);
+});
+
+test('il titolo è obbligatorio', () => {
+  assert.deepEqual(validaIdea({ ...IDEA_VALIDA, titolo: '   ' }), {
+    ok: false,
+    errore: 'errori.titoloIdeaObbligatorio',
+  });
+});
+
+test('serve almeno un piatto, e ogni piatto deve avere un nome', () => {
+  assert.deepEqual(validaIdea({ ...IDEA_VALIDA, piatti: [] }), { ok: false, errore: 'errori.almenoUnPiatto' });
+  assert.deepEqual(validaIdea({ ...IDEA_VALIDA, piatti: [{ nome: '' }] }), {
+    ok: false,
+    errore: 'errori.nomePiattoObbligatorio',
+  });
+});
+
+test('note troppo lunghe: rifiutate', () => {
+  assert.deepEqual(validaIdea({ ...IDEA_VALIDA, nota: 'a'.repeat(1001) }), {
+    ok: false,
+    errore: 'errori.notaIdeaTroppoLunga',
+  });
+  assert.deepEqual(validaIdea({ ...IDEA_VALIDA, piatti: [{ nome: 'Tacos', note: 'a'.repeat(1001) }] }), {
+    ok: false,
+    errore: 'errori.notePiattoTroppoLunghe',
+  });
+});
+
+test('due idee con lo stesso titolo prendono id diversi', () => {
+  const primo = validaIdea(IDEA_VALIDA);
+  assert.equal(primo.ok, true);
+  if (!primo.ok) return;
+  const secondo = validaIdea(IDEA_VALIDA, [primo.dato.id]);
+  assert.equal(secondo.ok, true);
+  if (secondo.ok) assert.equal(secondo.dato.id, 'pranzo-messicano-2');
+});
+
+test('importazione delle idee: elenco valido, elenco assente, voce rotta', () => {
+  const buone = validaIdeeImportate([IDEA_VALIDA]);
+  assert.equal(buone.ok, true);
+  if (buone.ok) assert.equal(buone.dato.length, 1);
+  assert.deepEqual(validaIdeeImportate(undefined), { ok: true, dato: [] });
+  assert.deepEqual(validaIdeeImportate([{ titolo: 'Senza piatti' }]), {
+    ok: false,
+    errore: 'errori.almenoUnPiatto',
+  });
 });

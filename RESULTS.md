@@ -7,7 +7,7 @@ immagine e descrizione, filtri richiudibili, nuovo editor): vedi §7.
 Tutti gli output qui sotto sono **copiati dai comandi realmente eseguiti** (log completi in
 `verifiche/`, cartella non versionata).
 
-**Esito complessivo: 20 verifiche su 20 verdi.**
+**Esito complessivo: 21 verifiche su 21 verdi.**
 
 ---
 
@@ -17,25 +17,26 @@ Tutti gli output qui sotto sono **copiati dai comandi realmente eseguiti** (log 
 |---|---|---|---|---|
 | 1 | Build | `npm run build` | exit 0, zero warning | ✅ exit 0, 0 warning |
 | 2 | Type check | `npx astro check` | 0 errori, 0 warning | ✅ 0 errori, 0 warning, 0 hint (49 file) |
-| 3 | Pagine raggiungibili | `npm run preview` + `node scripts/check-pages.mjs` | tutte 200 | ✅ 16/16 a 200 |
+| 3 | Pagine raggiungibili | `npm run preview` + `node scripts/check-pages.mjs` | tutte 200 | ✅ 19/19 a 200 |
 | 4 | 404 | richiesta a URL inesistente | pagina 404 personalizzata | ✅ `404 Not Found` + pagina dell'app |
 | 5 | Lighthouse home (mobile) | `npx lighthouse` | Perf ≥95, A11y ≥95, BP ≥95 | ✅ 99 / 100 / 100 (SEO 100) |
 | 6 | Lighthouse modalità Cucina | idem su `/cucina/?id=…` | stesse soglie | ✅ 99 / 100 / 100 (SEO 100); anche `/ricette/` 98 e `/modifica/` 99 |
 | 7 | PWA installabile | ispezione di `dist/` + Lighthouse | manifest e SW coerenti con la base | ✅ manifest, SW, 4 icone, meta iOS |
 | 8 | HTML valido | `npx html-validate "dist/**/*.html"` | 0 errori | ✅ exit 0, nessun errore |
-| 9 | Link interni | `npx linkinator … --recurse` | 0 link rotti | ✅ 26 link, 0 rotti |
-| 10 | Test | `npm test` | tutti verdi | ✅ 82/82 |
+| 9 | Link interni | `npx linkinator … --recurse` | 0 link rotti | ✅ 30 link, 0 rotti |
+| 10 | Test | `npm test` | tutti verdi | ✅ 92/92 |
 | 10b | Astrazione storage | `grep -rn 'localStorage\|indexedDB' src`, escluse le due implementazioni | nessuna corrispondenza | ✅ nessuna corrispondenza |
 | 11 | Schema collection | `.md` con campo mancante + build | la build **deve** fallire | ✅ exit 1 con errore leggibile, file rimosso |
 | 12 | Dipendenze e domini terzi | `node scripts/check-no-deps.mjs` | nessuna dipendenza runtime estranea | ✅ solo `astro`, nessun dominio terzo |
 | 13 | Vulnerabilità | `npm audit --audit-level=high` | 0 high/critical | ✅ 0 vulnerabilità |
-| 14 | Responsive | `npm run verifica:responsive` (360/768/1280) | nessun overflow, nessun testo tagliato | ✅ 45/45 viste |
+| 14 | Responsive | `npm run verifica:responsive` (360/768/1280) | nessun overflow, nessun testo tagliato | ✅ 54/54 viste |
 | 15 | i18n | grep dei testi letterali nei template | tutte le label da `it.json` | ✅ nessun testo hardcoded |
 | 16 | Flussi funzionali | `npm run verifica:flussi` | tutti i passaggi riusciti | ✅ 47/47, 0 errori in pagina |
 | 17 | Offline | `npm run verifica:offline` | tutte le schermate si aprono senza rete | ✅ 10/10 schermate + dati intatti |
 | 18 | Base path | build con `/Semagnaa/` e con `/` | nessun link, asset, SW o manifest rotto | ✅ entrambe le configurazioni |
 | 19 | Consegna degli aggiornamenti | `npm run verifica:aggiornamento` | l'app rileva la versione nuova, la applica, cancella la cache vecchia e non perde i dati | ✅ 11/11 |
 | 20 | Cantina | `npm run verifica:vini` | si entra sui soli filtri, "Cerca" mostra le bottiglie, la foto viene ridotta e salvata, le note lunghe restano nella scheda | ✅ 26/26 |
+| 21 | Idee per la domenica | `npm run verifica:idee` | i piatti si aggiungono uno alla volta e si riordinano, le note si aprono solo nella scheda, l'elenco mostra i soli nomi | ✅ 24/24 |
 
 ---
 
@@ -793,3 +794,93 @@ dist: 383.2 kB in 56 file    (CSS 21.7 kB, JavaScript 78.3 kB in chunk condivisi
   cancellate una per una. La cantina vuota mostra un invito ad aggiungere il primo vino.
 - **La cantina riparte sempre dai filtri**, anche tornando indietro da una scheda: i valori
   dell'ultima ricerca restano compilati, i risultati si rivedono toccando Cerca.
+
+
+---
+
+## 10. Quinto giro: Idee per la domenica
+
+Richiesta: *"una sezione chiamata idee per la domenica, dove posso inserire delle combo di
+piatti che potrebbero stare bene. Per esempio: pranzo messicano con dentro tacos e Caesar
+salad; volendo ogni piatto può essere approfondito con delle note. Non cambiare altro."*
+
+| Richiesta | Come è stata risolta |
+|---|---|
+| Combinazioni di piatti | Un'**idea** ha un titolo ("Pranzo messicano"), una nota facoltativa sull'insieme e l'elenco dei piatti |
+| Inserire i piatti | Si aggiungono **uno alla volta**, come gli ingredienti di una ricetta: scrivi il nome, eventualmente le note, tocchi *Aggiungi piatto*. Poi si riordinano (↑ ↓) e si tolgono (×) |
+| Note per piatto, facoltative | Ogni piatto può avere le sue note. Un piatto senza note resta una riga semplice, uno con note diventa apribile |
+| "Volendo approfondito" | Le note **si aprono toccando il piatto** nella scheda dell'idea; nell'elenco delle idee si leggono i soli nomi dei piatti. Verificato dal test: la parola contenuta nelle note non compare da nessuna parte nell'elenco |
+| Non cambiare altro | Nessuna modifica alle sezioni esistenti. Le sole aggiunte fuori dalla sezione sono la voce "Idee" nella barra, la scorciatoia in home, il conteggio nelle impostazioni e le idee dentro esportazione/importazione — cioè quanto serve perché la sezione esista e i dati non si perdano |
+
+Dettagli pensati per l'uso vero: le **preferite** stanno in cima all'elenco, poi le più
+recenti; la **ricerca** (titolo, nota, piatti) compare dalla quinta idea in avanti, prima
+sarebbe rumore; i piatti suggeriscono i **titoli delle tue ricette** e i piatti già usati
+in altre idee, restando però testo libero — un'idea nasce quasi sempre prima della ricetta.
+
+### Verifica 21, output reale
+
+```
+$ npm run verifica:idee
+OK       senza idee compare l invito con l esempio
+OK       i piatti si aggiungono uno alla volta
+OK       un piatto senza nome viene rifiutato
+OK       i piatti si riordinano
+OK       il salvataggio apre la scheda
+OK       la scheda mostra il titolo
+OK       la scheda mostra la nota generale
+OK       conta piatti e note (3 piatti · 2 con note)
+OK       i piatti sono tre
+OK       il piatto con note parte chiuso
+OK       le note non si vedono a piatto chiuso
+OK       aprendo il piatto si leggono le note
+OK       sono le note giuste
+OK       il piatto senza note non è apribile
+OK       l elenco mostra i nomi dei piatti
+OK       l elenco non mostra le note dei piatti
+OK       l elenco conta i piatti
+OK       due idee in elenco
+OK       la preferita sta in cima
+OK       modificando, i piatti sono già lì
+OK       il titolo è precompilato
+OK       il piatto aggiunto compare nella scheda
+OK       l'idea eliminata sparisce
+OK       ricette e idee convivono ({"ricette":9,"idee":1})
+
+24/24 passi riusciti
+```
+
+### Il resto della batteria
+
+```
+npm test                  92/92   (10 nuovi: ordinamento, ricerca e validazione delle idee)
+astro check               0 errori, 0 warning, 0 hint (74 file)
+check-pages               19/19 risorse a 200
+html-validate             exit 0
+linkinator                30 link, 0 rotti
+verifica:vini             26/26
+verifica:flussi           47/47
+verifica:responsive       54/54 viste (comprese le tre schermate delle idee)
+verifica:offline          tutte le schermate senza rete
+verifica:aggiornamento    11/11
+npm audit                 0 vulnerabilità
+dist                      434.2 kB in 63 file
+```
+
+Lighthouse (mobile) sulle pagine nuove e sulla home:
+
+| Pagina | Performance | Accessibilità | Best practices | SEO |
+|---|---|---|---|---|
+| `/` | 100 | 100 | 100 | 100 |
+| `/idee/` | 100 | 100 | 100 | 100 |
+| `/idea/?id=…` | 100 | 100 | 100 | 100 |
+
+### Due cose fuori dalla richiesta, dichiarate
+
+1. **La barra di navigazione passa a sei voci.** Era l'unico posto sensato per la sezione
+   nuova. A 360 px ogni voce ha 60 px: "Impostazioni" va a capo su due righe, resta
+   leggibile e nessuna schermata sborda (verifica 14, 54 viste). Nessuna etichetta
+   esistente è stata accorciata.
+2. **Dipendenze aggiornate** (Astro 7.2.10 → 7.4.1, con `npm audit fix`). Non era chiesto,
+   ma `npm audit` segnalava due vulnerabilità **high** in dipendenze trasferite da Astro, e
+   la verifica 13 pretende zero high/critical: pubblicare lasciandole sarebbe stato peggio
+   che aggiornare. L'intera batteria è stata rilanciata dopo l'aggiornamento.

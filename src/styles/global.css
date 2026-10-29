@@ -335,7 +335,7 @@ textarea {
 
 .barra-nav__lista {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   max-width: 640px;
   margin: 0 auto;
   padding: 0;
@@ -349,9 +349,12 @@ textarea {
   justify-content: center;
   gap: 2px;
   min-height: var(--barra-altezza);
-  padding: var(--space-1) 2px;
-  font-size: 0.75rem;
+  padding: var(--space-1) 1px;
+  /* Sei voci su 360 px: 60 px ciascuna, etichette corte e testo piccolo. */
+  font-size: 0.7rem;
+  line-height: 1.1;
   text-align: center;
+  hyphens: auto;
   color: var(--testo-tenue);
   text-decoration: none;
   transition: color var(--transizione), background var(--transizione);
@@ -1408,6 +1411,132 @@ dialog::backdrop {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* --- 13c. Idee per la domenica ------------------------------------------ */
+
+.elenco-idee {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: 1fr;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .elenco-idee {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.idea-scheda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  background: var(--superficie);
+  border: 1px solid var(--bordo);
+  border-radius: var(--raggio-grande);
+  padding: var(--space-4);
+  box-shadow: var(--ombra);
+}
+
+.idea-scheda__titolo {
+  font-family: var(--font-titoli);
+  font-size: var(--testo-l);
+  line-height: var(--interlinea-titoli);
+  margin: 0;
+}
+
+.idea-scheda__titolo a {
+  color: var(--testo);
+  text-decoration: none;
+}
+
+.idea-scheda__titolo a:hover {
+  text-decoration: underline;
+}
+
+/* La stella delle preferite non deve incollarsi al titolo. */
+.idea-scheda__titolo .etichetta {
+  margin-left: var(--space-2);
+  vertical-align: middle;
+}
+
+/* I piatti in anteprima: i nomi, non le note. */
+.idea-scheda__piatti {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.idea-scheda__meta {
+  margin: 0;
+  font-size: var(--testo-xs);
+  color: var(--testo-tenue);
+}
+
+/* Piatti nella scheda dell'idea: le note si aprono una alla volta. */
+.elenco-piatti {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.piatto {
+  background: var(--superficie);
+  border: 1px solid var(--bordo);
+  border-radius: var(--raggio);
+}
+
+.piatto > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tocco);
+  padding: var(--space-3) var(--space-4);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.piatto > summary::-webkit-details-marker {
+  display: none;
+}
+
+.piatto > summary::after {
+  content: '';
+  margin-left: auto;
+  flex: 0 0 auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--testo-tenue);
+  border-bottom: 2px solid var(--testo-tenue);
+  transform: rotate(45deg);
+  transition: transform var(--transizione);
+}
+
+.piatto[open] > summary::after {
+  transform: rotate(-135deg);
+}
+
+.piatto__note {
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-4);
+  color: var(--testo-tenue);
+  white-space: pre-wrap;
+}
+
+/* Un piatto senza note non si apre: resta una riga sola. */
+.piatto--semplice {
+  padding: var(--space-3) var(--space-4);
+  font-weight: 700;
 }
 
 /* --- 14. Utilità ------------------------------------------------------- */

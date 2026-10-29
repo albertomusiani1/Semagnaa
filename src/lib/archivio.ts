@@ -7,7 +7,7 @@
  * `archivio-<qualcosa>.ts` che implementa `Archivio` e si punta a quello.
  * Vedi README, sezione "Cambiare tecnologia di storage".
  */
-import type { Ricetta, Vino } from './tipi.ts';
+import type { Idea, Ricetta, Vino } from './tipi.ts';
 import type { Esito } from './esito.ts';
 
 /** Chiavi di stato ammesse: elenco chiuso, così non si sparpagliano stringhe. */
@@ -38,6 +38,13 @@ export interface Archivio {
   cancellaVino(id: string): Promise<Esito<void>>;
   /** Unisce per `id`: usata dall'importazione. */
   unisciVini(vini: readonly Vino[]): Promise<Esito<void>>;
+
+  leggiIdee(): Promise<Esito<Idea[]>>;
+  leggiIdea(id: string): Promise<Esito<Idea | null>>;
+  salvaIdea(idea: Idea): Promise<Esito<Idea>>;
+  cancellaIdea(id: string): Promise<Esito<void>>;
+  /** Unisce per `id`: usata dall'importazione. */
+  unisciIdee(idee: readonly Idea[]): Promise<Esito<void>>;
 
   leggiStato<T>(chiave: ChiaveStato, predefinito: T): Promise<Esito<T>>;
   scriviStato<T>(chiave: ChiaveStato, valore: T): Promise<Esito<void>>;

@@ -16,6 +16,9 @@ await mkdir(OUT, { recursive: true });
 const PAGINE = [
   ['home', ''],
   ['ricette', 'ricette/'],
+  ['idee', 'idee/'],
+  ['idea', 'idea/?id=pranzo-messicano'],
+  ['idea-modifica', 'idea/modifica/?id=pranzo-messicano'],
   ['vini', 'vini/'],
   ['vini-risultati', 'vini/', async (pagina) => {
     await pagina.waitForSelector('#ricerca');
@@ -74,6 +77,34 @@ await p.evaluate(() => {
     ]),
   );
   localStorage.removeItem('semagnaa:stato:vini-filtri');
+
+  // Un paio di idee per la domenica, altrimenti quelle schermate sono vuote.
+  localStorage.setItem(
+    'semagnaa:idee',
+    JSON.stringify([
+      {
+        id: 'pranzo-messicano',
+        titolo: 'Pranzo messicano',
+        nota: 'Per sei, con birra chiara e molto lime.',
+        piatti: [
+          { nome: 'Tacos di manzo', note: 'Carne marinata la sera prima, tortillas scaldate in padella.' },
+          { nome: 'Guacamole' },
+          { nome: 'Caesar salad', note: 'Senza acciughe.' },
+        ],
+        preferita: true,
+        creataIl: adesso,
+        aggiornataIl: adesso,
+      },
+      {
+        id: 'domenica-di-pesce',
+        titolo: 'Domenica di pesce',
+        piatti: [{ nome: 'Spaghetti alle vongole' }, { nome: 'Orata al forno' }],
+        preferita: false,
+        creataIl: adesso,
+        aggiornataIl: adesso,
+      },
+    ]),
+  );
 });
 
 const problemi = [];

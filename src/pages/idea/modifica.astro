@@ -1,0 +1,203 @@
+---
+import Base from '../../layouts/Base.astro';
+import Icona from '../../components/Icona.astro';
+import { T } from '../../i18n';
+---
+
+<Base titolo={T.editorIdea.titoloNuova}>
+  <h1 id="titolo-pagina">{T.editorIdea.titoloNuova}</h1>
+  <p class="messaggio" id="messaggio" role="status" hidden></p>
+
+  <form id="modulo" novalidate>
+    <!-- 1. L'idea -------------------------------------------------------- -->
+    <fieldset class="gruppo-campi">
+      <legend><h2>{T.editorIdea.sezioneBase}</h2></legend>
+
+      <div class="campo">
+        <label for="titolo">{T.editorIdea.campoTitolo}</label>
+        <input type="text" id="titolo" maxlength="90" autocomplete="off" required />
+        <span class="campo__aiuto">{T.editorIdea.campoTitoloAiuto}</span>
+      </div>
+
+      <div class="campo">
+        <label for="nota">{T.editorIdea.campoNota}</label>
+        <textarea id="nota" maxlength="1000" rows="3"></textarea>
+        <span class="campo__aiuto">{T.editorIdea.campoNotaAiuto}</span>
+      </div>
+
+      <div class="interruttore">
+        <input type="checkbox" id="preferita" />
+        <label for="preferita">{T.idea.preferita}</label>
+      </div>
+    </fieldset>
+
+    <!-- 2. Piatti, uno alla volta ---------------------------------------- -->
+    <fieldset class="gruppo-campi">
+      <legend><h2>{T.editorIdea.sezionePiatti}</h2></legend>
+
+      <p class="campo__etichetta">{T.editorIdea.elencoPiatti}</p>
+      <ul class="elenco-voci elenco-voci--numerato" id="piatti"></ul>
+      <p class="campo__aiuto" id="piatti-vuoto">{T.editorIdea.nessunPiatto}</p>
+
+      <div class="riquadro-aggiungi">
+        <p class="campo__etichetta">{T.editorIdea.nuovoPiatto}</p>
+        <div class="campo">
+          <label for="piatto-nome">{T.editorIdea.campoNomePiatto}</label>
+          <input type="text" id="piatto-nome" list="piatti-noti" maxlength="80" autocomplete="off" />
+          <datalist id="piatti-noti"></datalist>
+          <span class="campo__aiuto">{T.editorIdea.campoNomePiattoAiuto}</span>
+        </div>
+        <div class="campo">
+          <label for="piatto-note">{T.editorIdea.campoNotePiatto}</label>
+          <textarea id="piatto-note" maxlength="1000" rows="3"></textarea>
+          <span class="campo__aiuto">{T.editorIdea.campoNotePiattoAiuto}</span>
+        </div>
+        <button class="bottone" type="button" id="aggiungi-piatto">
+          <Icona nome="piu" dimensione={20} />
+          {T.editorIdea.aggiungiPiatto}
+        </button>
+      </div>
+    </fieldset>
+
+    <div class="azioni-fisse">
+      <button class="bottone bottone--grande" type="submit">{T.azioni.salva}</button>
+      <a class="bottone bottone--secondario bottone--grande" id="annulla" href="#">{T.azioni.annulla}</a>
+    </div>
+  </form>
+</Base>
+
+<script>
+  import { T } from '../../i18n';
+  import { archivio } from '../../lib/archivio';
+  import { annuncia, el, svuota, trova } from '../../lib/dom';
+  import { PERCORSI, parametro, urlIdea } from '../../lib/percorsi';
+  import { validaIdea } from '../../lib/validazione';
+  import type { Idea, Piatto } from '../../lib/tipi';
+
+  const id = parametro('id');
+  const messaggio = trova('#messaggio');
+  const modulo = trova<HTMLFormElement>('#modulo');
+
+  const esitoIdee = await archivio.leggiIdee();
+  const idee = esitoIdee.ok ? esitoIdee.dato : [];
+  const esistente: Idea | undefined = id === null ? undefined : idee.find((i) => i.id === id);
+
+  if (esistente !== undefined) {
+    trova('#titolo-pagina').textContent = T.editorIdea.titoloModifica;
+    document.title = `${T.editorIdea.titoloModifica} · ${T.app.nome}`;
+  }
+  trova<HTMLAnchorElement>('#annulla').href = esistente === undefined ? PERCORSI.idee : urlIdea(esistente.id);
+
+  // Suggerimenti: i titoli delle ricette che hai già e i piatti già usati
+  // nelle altre idee. Resta un campo libero: un'idea nasce prima della ricetta.
+  const suggeriti = new Set<string>();
+  const esitoRicette = await archivio.leggiRicette();
+  if (esitoRicette.ok) for (const ricetta of esitoRicette.dato) suggeriti.add(ricetta.titolo);
+  for (const idea of idee) for (const piatto of idea.piatti) suggeriti.add(piatto.nome);
+  const elencoSuggeriti = trova('#piatti-noti');
+  for (const nome of [...suggeriti].sort((a, b) => a.localeCompare(b, 'it'))) {
+    elencoSuggeriti.append(el('option', { value: nome }));
+  }
+
+  // --- piatti, uno alla volta --------------------------------------------
+  const piatti: Piatto[] = esistente === undefined ? [] : esistente.piatti.map((p) => ({ ...p }));
+  const contenitore = trova('#piatti');
+  const campoNome = trova<HTMLInputElement>('#piatto-nome');
+  const campoNote = trova<HTMLTextAreaElement>('#piatto-note');
+
+  function sposta(da: number, a: number): void {
+    if (a < 0 || a >= piatti.length) return;
+    const voce = piatti[da];
+    if (voce === undefined) return;
+    piatti.splice(da, 1);
+    piatti.splice(a, 0, voce);
+    disegnaPiatti();
+  }
+
+  function disegnaPiatti(): void {
+    svuota(contenitore);
+    piatti.forEach((piatto, indice) => {
+      const su = el('button', { type: 'button', class: 'bottone bottone--secondario', 'aria-label': T.azioni.su, disabled: indice === 0 }, ['↑']);
+      const giu = el('button', { type: 'button', class: 'bottone bottone--secondario', 'aria-label': T.azioni.giu, disabled: indice === piatti.length - 1 }, ['↓']);
+      const via = el('button', { type: 'button', class: 'bottone bottone--pericolo', 'aria-label': T.editorIdea.rimuoviPiatto }, ['×']);
+      su.addEventListener('click', () => sposta(indice, indice - 1));
+      giu.addEventListener('click', () => sposta(indice, indice + 1));
+      via.addEventListener('click', () => {
+        piatti.splice(indice, 1);
+        disegnaPiatti();
+      });
+
+      contenitore.append(
+        el('li', {}, [
+          el('div', { class: 'elenco-voci__testo' }, [
+            el('div', { class: 'voce__nome' }, [piatto.nome]),
+            piatto.note === undefined
+              ? null
+              : el('div', { class: 'voce__dettaglio' }, [`${T.editorIdea.conNote}: ${piatto.note}`]),
+          ]),
+          el('div', { class: 'elenco-voci__azioni' }, [su, giu, via]),
+        ]),
+      );
+    });
+    trova('#piatti-vuoto').hidden = piatti.length > 0;
+  }
+
+  trova('#aggiungi-piatto').addEventListener('click', () => {
+    const nome = campoNome.value.trim();
+    if (nome === '') {
+      annuncia(messaggio, T.errori.piattoSenzaNome, 'errore');
+      campoNome.focus();
+      return;
+    }
+    const piatto: Piatto = { nome };
+    const note = campoNote.value.trim();
+    if (note !== '') piatto.note = note;
+    piatti.push(piatto);
+    disegnaPiatti();
+
+    campoNome.value = '';
+    campoNote.value = '';
+    annuncia(messaggio, T.editorIdea.piattoAggiunto);
+    campoNome.focus();
+  });
+
+  // --- riempimento iniziale ----------------------------------------------
+  if (esistente !== undefined) {
+    trova<HTMLInputElement>('#titolo').value = esistente.titolo;
+    trova<HTMLTextAreaElement>('#nota').value = esistente.nota ?? '';
+    trova<HTMLInputElement>('#preferita').checked = esistente.preferita;
+  }
+  disegnaPiatti();
+
+  // --- salvataggio --------------------------------------------------------
+  modulo.addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+
+    const grezza: Record<string, unknown> = {
+      id: esistente?.id,
+      titolo: trova<HTMLInputElement>('#titolo').value,
+      nota: trova<HTMLTextAreaElement>('#nota').value,
+      preferita: trova<HTMLInputElement>('#preferita').checked,
+      piatti,
+      creataIl: esistente?.creataIl,
+    };
+
+    const esito = validaIdea(
+      grezza,
+      idee.map((i) => i.id).filter((altro) => altro !== esistente?.id),
+    );
+    if (!esito.ok) {
+      const chiave = esito.errore.replace('errori.', '') as keyof typeof T.errori;
+      annuncia(messaggio, T.errori[chiave] ?? esito.errore, 'errore');
+      messaggio.scrollIntoView({ block: 'center' });
+      return;
+    }
+
+    const salvata = await archivio.salvaIdea(esito.dato);
+    if (!salvata.ok) {
+      annuncia(messaggio, T.errori.storagePieno, 'errore');
+      return;
+    }
+    location.href = urlIdea(esito.dato.id);
+  });
+</script>

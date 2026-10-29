@@ -12,6 +12,10 @@ Piano di lavoro operativo, memoria della sessione. Aggiornato a ogni fase comple
 - 2026-09-01 19:10 — PWA completa (manifest generato, service worker + precache), `astro check` 0/0/0.
 - 2026-09-01 19:30 — **Tutte le 18 verifiche della Definizione di Fatto passano.** Vedi `RESULTS.md`.
 - 2026-09-01 19:35 — README, RESULTS.md, workflow GitHub Pages. Prima versione completa.
+- 2026-10-28 12:55 — **Quinto giro**: sezione **Idee per la domenica**. Combinazioni di
+  piatti (titolo, nota, elenco dei piatti), note per singolo piatto visibili solo aprendolo,
+  piatti aggiunti uno alla volta con suggerimenti dalle ricette. 92 test, 24/24 passi sulle
+  idee, Lighthouse 100/100/100/100. Aggiornate le dipendenze per `npm audit` (Astro 7.4.1).
 - 2026-09-13 13:55 — **Quarto giro**: sezione **Cantina**. Catalogo dei vini con ricerca a
   filtri (stato, regione, cantina, colore, bollicine, annata, preferiti), risultati a
   griglia da negozio che compaiono solo dopo "Cerca", foto delle bottiglie in IndexedDB
@@ -145,6 +149,17 @@ Piano di lavoro operativo, memoria della sessione. Aggiornato a ogni fase comple
 - [x] Impostazioni: conteggio vini, numero e peso delle foto, azzeramento che le comprende
 - [x] Esportazione e importazione estese ai vini (foto escluse, limite dichiarato)
 - [x] `scripts/verifica-vini.mjs` (verifica 20) e schermate della cantina nel responsive
+
+### Fase 15 — Idee per la domenica
+- [x] Modello `Idea` e `Piatto` in `tipi.ts`; archivio esteso (stesso schema di ricette e vini)
+- [x] `src/lib/idee.ts` puro e testato: ordinamento, ricerca, conteggio delle note
+- [x] `validaIdea` e `validaIdeeImportate` con i loro test
+- [x] `/idee/`: elenco a schede con i nomi dei piatti, preferite in cima, ricerca dalla quinta idea
+- [x] `/idea/?id=`: nota generale e piatti apribili uno a uno (`<details>`)
+- [x] `/idea/modifica/`: piatti aggiunti uno alla volta, riordino, suggerimenti dalle ricette
+- [x] Voce "Idee" nella barra (sei voci) e scorciatoia in home
+- [x] Impostazioni: conteggio delle idee; esportazione e importazione estese
+- [x] `scripts/verifica-idee.mjs` (verifica 21) e schermate nelle verifiche responsive e offline
 
 ---
 
@@ -371,3 +386,29 @@ Nessuno che blocchi l'uso dell'app. Limiti noti e voluti, documentati nel README
 29. **Nessun vino di esempio.** Le ricette di esempio hanno senso (sono un ricettario di
     partenza), bottiglie finte in una cantina personale no: andrebbero cancellate una per
     una. La cantina vuota mostra un invito ad aggiungere il primo vino.
+
+### Quinto giro (idee per la domenica)
+
+30. **I piatti sono testo libero, non riferimenti alle ricette.**
+    Un'idea nasce quasi sempre prima della ricetta ("domenica faccio i tacos"), e legarla a
+    una ricetta esistente l'avrebbe resa impossibile da scrivere finché la ricetta non c'è.
+    Il campo suggerisce i titoli delle ricette e i piatti già usati, ma resta libero.
+    *Scartato*: un collegamento vero alla ricetta — più potente, ma avrebbe spostato il
+    lavoro dal pensare al menù al catalogare.
+
+31. **Le note del piatto si aprono, non si vedono subito.**
+    È la richiesta ("volendo ogni piatto può essere approfondito"), ed è anche l'unica
+    forma che tiene l'elenco leggibile: cinque piatti con tre righe di note ciascuno
+    sarebbero una parete di testo. Nell'elenco delle idee si vedono solo i nomi.
+
+32. **La barra di navigazione passa a sei voci.**
+    Era l'unico posto sensato per una sezione nuova. A 360 px le voci diventano da 60 px:
+    "Impostazioni" va a capo su due righe, ma resta leggibile e nessuna schermata sborda
+    (verifica 14, 54 viste). Non ho accorciato nessuna etichetta esistente: era fuori da
+    quanto chiesto.
+
+33. **Aggiornate le dipendenze di sviluppo** (Astro 7.2.10 → 7.4.1, con `npm audit fix`).
+    Non era chiesto, ma `npm audit` segnalava due vulnerabilità **high** in dipendenze
+    trasferite da Astro, e la verifica 13 della Definizione di Fatto richiede zero
+    high/critical: pubblicare lasciandole sarebbe stato peggio che aggiornare. Tutta la
+    batteria è stata rilanciata dopo l'aggiornamento.

@@ -125,6 +125,28 @@ export interface Vino {
   aggiornatoIl: string;
 }
 
+/* --- Idee per la domenica ----------------------------------------------
+ * Una combinazione di piatti che stanno bene insieme ("pranzo messicano":
+ * tacos, guacamole, Caesar salad). I piatti sono testo libero: un'idea nasce
+ * spesso prima della ricetta, e non deve dipendere dall'averla già scritta.
+ */
+export interface Piatto {
+  nome: string;
+  /** Testo lungo, visibile solo aprendo il piatto. */
+  note?: string;
+}
+
+export interface Idea {
+  id: string;
+  titolo: string;
+  /** Nota sull'insieme: quando farla, per quante persone, cosa bere. */
+  nota?: string;
+  piatti: Piatto[];
+  preferita: boolean;
+  creataIl: string;
+  aggiornataIl: string;
+}
+
 export const LIMITI = {
   titoloMax: 90,
   nomeIngredienteMax: 80,
@@ -139,4 +161,8 @@ export const LIMITI = {
   descrizioneVinoMax: 2000,
   annataMin: 1900,
   annataMax: 2100,
+  titoloIdeaMax: 90,
+  notaIdeaMax: 1000,
+  nomePiattoMax: 80,
+  notePiattoMax: 1000,
 } as const;

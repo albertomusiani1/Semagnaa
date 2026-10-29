@@ -15,7 +15,9 @@ import type {
   Categoria,
   ColoreVino,
   Difficolta,
+  Idea,
   Ingrediente,
+  Piatto,
   Passaggio,
   Reparto,
   Ricetta,
@@ -279,4 +281,68 @@ export function validaVino(grezzo: unknown, idEsistenti: readonly string[] = [])
   vino.creatoIl = typeof grezzo['creatoIl'] === 'string' && grezzo['creatoIl'] !== '' ? grezzo['creatoIl'] : adesso;
   vino.aggiornatoIl = adesso;
   return ok(vino);
+}
+
+/* -------------------------------------------------------------------------
+ * Idee per la domenica
+ * ---------------------------------------------------------------------- */
+
+function validaPiatto(grezzo: unknown): Esito<Piatto> {
+  if (!eOggetto(grezzo)) return errore('errori.piattoNonValido');
+  const nome = stringa(grezzo['nome'], LIMITI.nomePiattoMax);
+  if (nome === null) return errore('errori.nomePiattoObbligatorio');
+  const piatto: Piatto = { nome };
+  const note = typeof grezzo['note'] === 'string' ? grezzo['note'].trim() : '';
+  if (note !== '') {
+    if (note.length > LIMITI.notePiattoMax) return errore('errori.notePiattoTroppoLunghe');
+    piatto.note = note;
+  }
+  return ok(piatto);
+}
+
+/** Valida e normalizza un'idea arrivata dall'editor o da un file importato. */
+export function validaIdea(grezzo: unknown, idEsistenti: readonly string[] = []): Esito<Idea> {
+  if (!eOggetto(grezzo)) return errore('errori.ideaNonValida');
+
+  const titolo = stringa(grezzo['titolo'], LIMITI.titoloIdeaMax);
+  if (titolo === null) return errore('errori.titoloIdeaObbligatorio');
+
+  const piattiGrezzi = grezzo['piatti'];
+  if (!Array.isArray(piattiGrezzi) || piattiGrezzi.length === 0) return errore('errori.almenoUnPiatto');
+  const piatti: Piatto[] = [];
+  for (const voce of piattiGrezzi) {
+    const esito = validaPiatto(voce);
+    if (!esito.ok) return errore(esito.errore);
+    piatti.push(esito.dato);
+  }
+
+  const adesso = new Date().toISOString();
+  const idGrezzo = typeof grezzo['id'] === 'string' ? grezzo['id'].trim() : '';
+  const idea: Idea = {
+    id: idGrezzo === '' ? slugLibero(titolo, idEsistenti) : slugifica(idGrezzo),
+    titolo,
+    piatti,
+    preferita: grezzo['preferita'] === true,
+    creataIl: typeof grezzo['creataIl'] === 'string' && grezzo['creataIl'] !== '' ? grezzo['creataIl'] : adesso,
+    aggiornataIl: adesso,
+  };
+
+  const nota = typeof grezzo['nota'] === 'string' ? grezzo['nota'].trim() : '';
+  if (nota !== '') {
+    if (nota.length > LIMITI.notaIdeaMax) return errore('errori.notaIdeaTroppoLunga');
+    idea.nota = nota;
+  }
+  return ok(idea);
+}
+
+/** Valida l'elenco delle idee dentro un file di esportazione. */
+export function validaIdeeImportate(grezzo: unknown): Esito<Idea[]> {
+  if (!Array.isArray(grezzo)) return ok([]);
+  const idee: Idea[] = [];
+  for (const voce of grezzo) {
+    const esito = validaIdea(voce, idee.map((i) => i.id));
+    if (!esito.ok) return errore(esito.errore);
+    idee.push(esito.dato);
+  }
+  return ok(idee);
 }

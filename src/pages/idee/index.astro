@@ -1,0 +1,95 @@
+---
+import Base from '../../layouts/Base.astro';
+import Icona from '../../components/Icona.astro';
+import { T } from '../../i18n';
+import { urlModificaIdea } from '../../lib/percorsi';
+---
+
+<Base titolo={T.idee.titolo}>
+  <div class="sezione__intestazione">
+    <h1>{T.idee.titolo}</h1>
+    <a class="bottone bottone--secondario" href={urlModificaIdea()}>
+      <Icona nome="piu" dimensione={20} />
+      {T.idee.aggiungi}
+    </a>
+  </div>
+
+  <p class="tenue">{T.idee.sottotitolo}</p>
+
+  <div class="campo" id="riga-ricerca" hidden>
+    <label for="cerca">{T.idee.cerca}</label>
+    <input type="search" id="cerca" autocomplete="off" />
+  </div>
+
+  <p class="tenue piccolo" id="conteggio" aria-live="polite"></p>
+  <div id="elenco"><p class="tenue">{T.stati.caricamento}</p></div>
+</Base>
+
+<script>
+  import { T, interpola } from '../../i18n';
+  import { archivio } from '../../lib/archivio';
+  import { el, svuota, trova } from '../../lib/dom';
+  import { messaggioVuoto } from '../../lib/viste';
+  import { cercaIdee, ordinaIdee, piattiConNote } from '../../lib/idee';
+  import { normalizzaNome } from '../../lib/testo';
+  import { urlIdea, urlModificaIdea } from '../../lib/percorsi';
+  import type { Idea } from '../../lib/tipi';
+
+  const esito = await archivio.leggiIdee();
+  const idee = ordinaIdee(esito.ok ? esito.dato : []);
+
+  const elenco = trova('#elenco');
+  const conteggio = trova('#conteggio');
+  const campoRicerca = trova<HTMLInputElement>('#cerca');
+
+  // La ricerca serve quando le idee sono tante: sotto le cinque è rumore.
+  if (idee.length >= 5) trova('#riga-ricerca').hidden = false;
+
+  function scheda(idea: Idea): HTMLLIElement {
+    const quanti = idea.piatti.length;
+    const conNote = piattiConNote(idea);
+    const pezzi = [quanti === 1 ? T.idee.unPiatto : interpola(T.idee.piattiN, { n: quanti })];
+    if (conNote > 0) {
+      pezzi.push(conNote === 1 ? T.idee.unaConNote : interpola(T.idee.conNote, { n: conNote }));
+    }
+
+    return el('li', { class: 'idea-scheda' }, [
+      el('h2', { class: 'idea-scheda__titolo' }, [
+        el('a', { href: urlIdea(idea.id) }, [idea.titolo]),
+        idea.preferita ? el('span', { class: 'etichetta etichetta--accento' }, ['★']) : null,
+      ]),
+      // Nell'elenco si vedono i nomi dei piatti: le note si aprono dentro.
+      el(
+        'ul',
+        { class: 'idea-scheda__piatti' },
+        idea.piatti.map((piatto) => el('li', { class: 'etichetta' }, [piatto.nome])),
+      ),
+      el('p', { class: 'idea-scheda__meta' }, [pezzi.join(' · ')]),
+    ]) as HTMLLIElement;
+  }
+
+  function disegna(): void {
+    const trovate = cercaIdee(idee, campoRicerca.value, normalizzaNome);
+    svuota(elenco);
+
+    if (idee.length === 0) {
+      conteggio.textContent = '';
+      const vuoto = messaggioVuoto(T.idee.nessuna, T.idee.nessunaAiuto);
+      vuoto.append(el('a', { class: 'bottone bottone--grande', href: urlModificaIdea() }, [T.idee.aggiungi]));
+      elenco.append(vuoto);
+      return;
+    }
+
+    conteggio.textContent =
+      trovate.length === 1 ? T.idee.unaIdea : interpola(T.idee.conteggio, { n: trovate.length });
+
+    if (trovate.length === 0) {
+      elenco.append(messaggioVuoto(T.idee.nessunRisultato, T.idee.nessunRisultatoAiuto));
+      return;
+    }
+    elenco.append(el('ul', { class: 'elenco-idee' }, trovate.map((idea) => scheda(idea))));
+  }
+
+  campoRicerca.addEventListener('input', disegna);
+  disegna();
+</script>

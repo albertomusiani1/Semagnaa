@@ -12,7 +12,8 @@
     "spesa": "Spesa",
     "impostazioni": "Impostazioni",
     "indietro": "Indietro",
-    "vini": "Vini"
+    "vini": "Vini",
+    "idee": "Idee"
   },
   "azioni": {
     "cucina": "Cucina",
@@ -60,7 +61,9 @@
     "nessunaPreferita": "Nessuna preferita per ora: aprine una e tocca la stella.",
     "conteggio": "{n} ricette in archivio",
     "vaiInCantina": "Cerca un vino",
-    "vaiInCantinaDettaglio": "Filtra per zona, cantina, colore e bollicine, poi guarda le bottiglie."
+    "vaiInCantinaDettaglio": "Filtra per zona, cantina, colore e bollicine, poi guarda le bottiglie.",
+    "vaiAlleIdee": "Idee per la domenica",
+    "vaiAlleIdeeDettaglio": "Le combinazioni di piatti che funzionano, con le note su ognuno."
   },
   "ricette": {
     "titolo": "Ricette",
@@ -262,7 +265,8 @@
     "forzaAzione": "Svuota la cache e ricarica",
     "forzaInCorso": "Svuoto la cache e ricarico...",
     "viniInArchivio": "Vini in cantina",
-    "fotoSalvate": "Foto salvate"
+    "fotoSalvate": "Foto salvate",
+    "ideeInArchivio": "Idee in archivio"
   },
   "info": {
     "titolo": "Come funziona",
@@ -363,7 +367,15 @@
     "provenienzaTroppoLunga": "Stato o regione troppo lunghi.",
     "fotoNonSalvata": "Non è stato possibile salvare la foto: spazio esaurito o modalità privata.",
     "fotoNonLetta": "Non è stato possibile leggere la foto.",
-    "fotoNonImmagine": "Quel file non è un’immagine."
+    "fotoNonImmagine": "Quel file non è un’immagine.",
+    "ideaNonValida": "Dati dell'idea non validi.",
+    "titoloIdeaObbligatorio": "Il titolo dell'idea è obbligatorio.",
+    "almenoUnPiatto": "Serve almeno un piatto.",
+    "piattoNonValido": "Un piatto non è compilato correttamente.",
+    "nomePiattoObbligatorio": "Ogni piatto deve avere un nome.",
+    "notaIdeaTroppoLunga": "La nota supera i 1000 caratteri.",
+    "notePiattoTroppoLunghe": "Le note del piatto superano i 1000 caratteri.",
+    "piattoSenzaNome": "Scrivi il nome del piatto prima di aggiungerlo."
   },
   "pwa": {
     "aggiornamentoTitolo": "Nuova versione disponibile",
@@ -479,5 +491,55 @@
     "campoDescrizione": "Note",
     "campoDescrizioneAiuto": "Il testo lungo: quando l’hai bevuto, con cosa, se lo ricompreresti. Si vede solo aprendo il vino.",
     "salvato": "Vino salvato."
+  },
+  "idee": {
+    "titolo": "Idee per la domenica",
+    "sottotitolo": "Combinazioni di piatti che stanno bene insieme.",
+    "aggiungi": "Nuova idea",
+    "cerca": "Cerca fra le idee",
+    "conteggio": "{n} idee",
+    "unaIdea": "1 idea",
+    "nessuna": "Nessuna idea per ora.",
+    "nessunaAiuto": "Per esempio: \"Pranzo messicano\" con tacos, guacamole e Caesar salad. Ogni piatto può avere le sue note.",
+    "nessunRisultato": "Nessuna idea trovata.",
+    "nessunRisultatoAiuto": "Prova con un altro termine.",
+    "piattiN": "{n} piatti",
+    "unPiatto": "1 piatto",
+    "conNote": "{n} con note",
+    "unaConNote": "1 con note"
+  },
+  "idea": {
+    "nonTrovata": "Idea non trovata",
+    "nonTrovataAiuto": "Forse è stata eliminata, oppure il link non è più valido.",
+    "piatti": "Piatti",
+    "nota": "Nota",
+    "note": "Note",
+    "senzaNote": "Nessuna nota per questo piatto.",
+    "apriNote": "Apri le note",
+    "eliminaTitolo": "Eliminare questa idea?",
+    "eliminaTesto": "Sparisce da questo dispositivo, con tutte le note dei piatti. Non si torna indietro.",
+    "preferita": "Segna come preferita",
+    "nonPreferita": "Togli dalle preferite"
+  },
+  "editorIdea": {
+    "titoloNuova": "Nuova idea",
+    "titoloModifica": "Modifica idea",
+    "sezioneBase": "L'idea",
+    "campoTitolo": "Titolo",
+    "campoTitoloAiuto": "Per esempio \"Pranzo messicano\" o \"Domenica di pesce\".",
+    "campoNota": "Nota",
+    "campoNotaAiuto": "Per quante persone, cosa bere, quando farla. Facoltativa.",
+    "sezionePiatti": "Piatti",
+    "elencoPiatti": "Piatti dell'idea",
+    "nessunPiatto": "Nessun piatto: scrivi il nome qui sotto e tocca Aggiungi piatto.",
+    "nuovoPiatto": "Nuovo piatto",
+    "campoNomePiatto": "Piatto",
+    "campoNomePiattoAiuto": "Scrivi liberamente, oppure scegli una delle tue ricette fra i suggerimenti.",
+    "campoNotePiatto": "Note sul piatto",
+    "campoNotePiattoAiuto": "Facoltative: si leggono solo aprendo il piatto nella scheda.",
+    "aggiungiPiatto": "Aggiungi piatto",
+    "rimuoviPiatto": "Rimuovi piatto",
+    "piattoAggiunto": "Piatto aggiunto.",
+    "conNote": "con note"
   }
 }
